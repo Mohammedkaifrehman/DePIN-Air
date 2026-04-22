@@ -43,40 +43,52 @@ export default function SensorChartModal({ sensorId, onClose }: SensorChartModal
 
   if (sensorId === null) return null;
 
+  const chartColor = '#00F5FF'; // Cyan for the main trend
+
   const chartData = {
     labels: sensorData.map(d => new Date(d.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })),
     datasets: activeTab === 'aqi' ? [
       {
-        label: 'AQI',
+        label: 'AQI INDEX',
         data: sensorData.map(d => d.aqi),
-        borderColor: currentSensor?.color || '#1D9E75',
-        backgroundColor: `${currentSensor?.color || '#1D9E75'}20`,
+        borderColor: chartColor,
+        backgroundColor: (context: any) => {
+          const chart = context.chart;
+          const {ctx, chartArea} = chart;
+          if (!chartArea) return null;
+          const gradient = ctx.createLinearGradient(0, chartArea.top, 0, chartArea.bottom);
+          gradient.addColorStop(0, `${chartColor}40`);
+          gradient.addColorStop(1, 'transparent');
+          return gradient;
+        },
         fill: true,
         tension: 0.4,
-        pointRadius: 2,
+        pointRadius: 0,
+        pointHoverRadius: 6,
+        borderWidth: 3,
       }
     ] : [
       {
         label: 'PM2.5',
         data: sensorData.map(d => d.pm25),
-        borderColor: '#1D9E75',
-        backgroundColor: 'transparent',
+        borderColor: '#00F5FF',
+        borderWidth: 2,
         tension: 0.4,
         pointRadius: 0,
       },
       {
         label: 'NO2',
         data: sensorData.map(d => d.no2),
-        borderColor: '#EF9F27',
-        backgroundColor: 'transparent',
+        borderColor: '#B026FF',
+        borderWidth: 2,
         tension: 0.4,
         pointRadius: 0,
       },
       {
         label: 'CO2',
         data: sensorData.map(d => (d.co2 - 300) / 2),
-        borderColor: '#378ADD',
-        backgroundColor: 'transparent',
+        borderColor: '#FF3D00',
+        borderWidth: 2,
         tension: 0.4,
         pointRadius: 0,
       }
@@ -90,19 +102,32 @@ export default function SensorChartModal({ sensorId, onClose }: SensorChartModal
       legend: {
         display: activeTab === 'pollutants',
         position: 'top' as const,
-        labels: { color: '#8B949E', font: { size: 10 } }
+        labels: { 
+          color: '#ffffff90', 
+          font: { size: 10, weight: 800, family: 'var(--font-space-grotesk)' },
+          usePointStyle: true,
+          padding: 20
+        }
       },
-      tooltip: { mode: 'index', intersect: false }
+      tooltip: { 
+        backgroundColor: 'rgba(0,0,0,0.8)',
+        titleFont: { size: 12, weight: 800 },
+        bodyFont: { size: 11, weight: 700 },
+        padding: 12,
+        borderColor: 'rgba(255,255,255,0.1)',
+        borderWidth: 1,
+        displayColors: false
+      }
     },
     scales: {
       y: {
         beginAtZero: true,
-        grid: { color: 'rgba(48, 54, 61, 0.2)' },
-        ticks: { color: '#8B949E', font: { size: 10 } }
+        grid: { color: 'rgba(255, 255, 255, 0.05)' },
+        ticks: { color: '#ffffff50', font: { size: 9, weight: 700 } }
       },
       x: {
         grid: { display: false },
-        ticks: { color: '#8B949E', font: { size: 10 }, maxTicksLimit: 6 }
+        ticks: { color: '#ffffff50', font: { size: 9, weight: 700 }, maxTicksLimit: 8 }
       }
     }
   };
@@ -112,70 +137,78 @@ export default function SensorChartModal({ sensorId, onClose }: SensorChartModal
     : 0;
 
   return (
-    <div className="fixed inset-0 z-[2000] flex items-center justify-center p-4">
-      <div className="absolute inset-0 bg-black/70 backdrop-blur-md" onClick={onClose} />
+    <div className="fixed inset-0 z-[3000] flex items-center justify-center p-6">
+      <div className="absolute inset-0 bg-black/60 backdrop-blur-2xl" onClick={onClose} />
       
       <div 
-        className="relative w-full max-w-2xl bg-bg-secondary border border-border-primary rounded-2xl shadow-2xl overflow-hidden fade-in"
+        className="relative w-full max-w-4xl max-h-[90vh] bg-white/[0.03] border border-white/10 rounded-[3rem] shadow-2xl overflow-hidden flex flex-col fade-in backdrop-blur-3xl"
         onClick={e => e.stopPropagation()}
       >
-        <div className="px-6 py-4 border-b border-border-primary flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div 
-              className="w-3 h-3 rounded-full" 
-              style={{ 
-                background: currentSensor?.color || '#1D9E75',
-                boxShadow: `0 0 10px ${currentSensor?.color || '#1D9E75'}`
-              }} 
-            />
-            <h2 className="text-lg font-bold text-text-primary">Sensor #{sensorId} Insights</h2>
-            <Badge variant="default">{currentSensor?.city}</Badge>
+        <div className="px-10 py-8 border-b border-white/5 flex items-center justify-between bg-white/[0.02]">
+          <div className="flex items-center gap-6">
+            <div className="flex flex-col">
+              <span className="text-[10px] font-black text-accent-cyan tracking-[0.4em] uppercase mb-1">Node Diagnostics</span>
+              <h2 className="text-3xl font-black text-text-primary uppercase tracking-tighter">NODE_#{sensorId}</h2>
+            </div>
+            <div className="h-10 w-px bg-white/10 mx-2" />
+            <div className="flex items-center gap-4">
+               <Badge variant="info">{currentSensor?.city.toUpperCase()}</Badge>
+               {sensorData.some(d => d.isSpike) && (
+                 <div className="px-3 py-1 rounded-md bg-accent-red/20 text-accent-red text-[9px] font-black uppercase tracking-widest border border-accent-red/30 animate-pulse">
+                   Critical Spike
+                 </div>
+               )}
+            </div>
           </div>
-          <button onClick={onClose} className="text-text-muted hover:text-text-primary transition-colors p-1">
-            ✕
+          <button 
+            onClick={onClose} 
+            className="w-12 h-12 flex items-center justify-center rounded-full border border-white/5 hover:bg-white/10 hover:border-white/20 transition-all group"
+          >
+            <span className="text-xl font-black group-hover:scale-110 transition-transform">✕</span>
           </button>
         </div>
 
-        <div className="p-6">
-          <div className="flex gap-2 mb-6">
-            <Button 
-              variant={activeTab === 'aqi' ? 'primary' : 'secondary'} 
-              size="sm"
+        <div className="p-10 overflow-y-auto scrollbar-hide flex-1">
+          <div className="flex gap-4 mb-10">
+            <button 
               onClick={() => setActiveTab('aqi')}
+              className={`px-8 py-3 rounded-full text-[10px] font-black uppercase tracking-[0.2em] transition-all border ${activeTab === 'aqi' ? 'bg-accent-cyan text-black border-accent-cyan' : 'bg-transparent text-text-muted border-white/10 hover:border-white/30'}`}
             >
               AQI Trend
-            </Button>
-            <Button 
-              variant={activeTab === 'pollutants' ? 'primary' : 'secondary'} 
-              size="sm"
+            </button>
+            <button 
               onClick={() => setActiveTab('pollutants')}
+              className={`px-8 py-3 rounded-full text-[10px] font-black uppercase tracking-[0.2em] transition-all border ${activeTab === 'pollutants' ? 'bg-accent-purple text-white border-accent-purple shadow-[0_0_15px_#B026FF40]' : 'bg-transparent text-text-muted border-white/10 hover:border-white/30'}`}
             >
               Pollutants
-            </Button>
+            </button>
           </div>
 
-          <div className="h-[300px] w-full mb-6">
+          <div className="h-[350px] w-full mb-10 bg-white/[0.01] rounded-[2rem] p-6 border border-white/5">
             <Line data={chartData} options={options} />
           </div>
 
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-            <StatBox label="Average AQI" value={avgAqi} color="var(--accent-amber)" />
-            <StatBox label="Max Reading" value={Math.max(...sensorData.map(d => d.aqi), 0)} color="var(--accent-red)" />
-            <StatBox label="Data Points" value={sensorData.length} color="var(--accent-blue)" />
-            <StatBox label="Status" value="Live" color="var(--accent-green)" />
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-6">
+            <StatBox label="Session Average" value={avgAqi} unit="AQI" color="var(--accent-cyan)" />
+            <StatBox label="Peak Velocity" value={Math.max(...sensorData.map(d => d.aqi), 0)} unit="AQI" color="var(--accent-red)" />
+            <StatBox label="Samples Anchored" value={sensorData.length} unit="PTS" color="var(--accent-purple)" />
+            <StatBox label="Network Link" value="ACTIVE" unit="LINK" color="var(--accent-green)" />
           </div>
         </div>
 
-        <div className="px-6 py-4 bg-bg-primary/50 border-t border-border-primary flex flex-col sm:flex-row items-center justify-between gap-3">
-          <div className="flex items-center gap-2">
-            <Badge variant="success" className="animate-pulse">Verified Node</Badge>
-            <span className="text-[10px] text-text-muted uppercase tracking-wider">Proof of Environmental Data (PoED)</span>
+        <div className="px-10 py-6 bg-white/[0.02] border-t border-white/5 flex items-center justify-between">
+          <div className="flex items-center gap-6">
+             <span className="text-[10px] font-black text-text-muted uppercase tracking-[0.3em] opacity-40">PROTOCOL_V2_INSIGHTS</span>
+             <div className="flex items-center gap-3">
+               <span className="w-2 h-2 rounded-full bg-accent-green shadow-[0_0_5px_#00F5FF]" />
+               <span className="text-[9px] font-black uppercase tracking-widest text-accent-green">Proof of Environmental Data (PoED) Stable</span>
+             </div>
           </div>
           <button 
-            className="text-[10px] text-accent-green hover:underline font-bold"
+            className="text-[10px] text-text-primary hover:text-accent-cyan font-black uppercase tracking-[0.3em] transition-colors"
             onClick={() => window.open('https://amoy.polygonscan.com', '_blank')}
           >
-            VIEW ON POLYGON EXPLORER ↗
+            Terminal Scan ↗
           </button>
         </div>
       </div>
@@ -183,11 +216,14 @@ export default function SensorChartModal({ sensorId, onClose }: SensorChartModal
   );
 }
 
-function StatBox({ label, value, color }: { label: string, value: string | number, color: string }) {
+function StatBox({ label, value, unit, color }: { label: string, value: string | number, unit: string, color: string }) {
   return (
-    <div className="p-3 rounded-xl bg-bg-primary border border-border-primary">
-      <span className="text-[9px] text-text-muted uppercase tracking-widest block mb-1">{label}</span>
-      <span className="text-xl font-bold font-mono" style={{ color }}>{value}</span>
+    <div className="p-8 rounded-[2rem] bg-white/[0.02] border border-white/5 hover:border-white/20 transition-all flex flex-col gap-2 shadow-xl group">
+      <span className="text-[9px] text-text-muted uppercase tracking-[0.4em] font-black group-hover:text-text-secondary transition-colors">{label}</span>
+      <div className="flex items-baseline gap-2">
+        <span className="text-4xl font-black font-mono tracking-tighter" style={{ color }}>{value}</span>
+        <span className="text-[10px] font-black text-text-muted opacity-40 uppercase tracking-widest">{unit}</span>
+      </div>
     </div>
   );
 }

@@ -1,6 +1,12 @@
 'use client';
 
 import React, { createContext, useContext, useEffect, useRef, useState, useCallback } from 'react';
+import { ethers } from 'ethers';
+import {
+  LEDGER_ADDRESS, LEDGER_ABI,
+  AIRQ_ADDRESS, AIRQ_ABI,
+  AMOY_RPC_URL, isBlockchainConfigured,
+} from '@/utils/web3-constants';
 
 export interface SensorReading {
   sensorId: number;
@@ -39,12 +45,24 @@ export interface SensorBatch {
   activeSensors: number;
 }
 
+export interface TxItem {
+  id: number;
+  batchHash: string;
+  timestamp: number;
+  seq: number;
+  avgAqi: number;
+  sensorCount: number;
+  isSpike: boolean;
+  cityBreakdown: { city: string; avgAqi: number; count: number }[];
+}
+
 export interface NetworkStats {
   activeSensors: number;
   totalReadingsMinted: number;
   globalAqi: number;
   airqBurned: number;
   citiesMonitored: number;
+  airqBalance: number;
 }
 
 interface WebSocketContextType {
@@ -56,6 +74,8 @@ interface WebSocketContextType {
   connected: boolean;
   triggerSpike: (sensorId?: number) => void;
   readingHistory: Map<number, SensorReading[]>;
+  burnAirq: (amount: number) => void;
+  mints: TxItem[];
 }
 
 const WebSocketContext = createContext<WebSocketContextType>({
@@ -69,17 +89,20 @@ const WebSocketContext = createContext<WebSocketContextType>({
     globalAqi: 0,
     airqBurned: 0,
     citiesMonitored: 5,
+    airqBalance: 5000,
   },
   connected: false,
   triggerSpike: () => {},
   readingHistory: new Map(),
+  burnAirq: () => {},
+  mints: [],
 });
 
 export const useWebSocket = () => useContext(WebSocketContext);
 
 const WS_URL = process.env.NEXT_PUBLIC_WS_URL || 'ws://localhost:8080';
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
-const MAX_HISTORY_PER_SENSOR = 300; // ~25 minutes at 5s intervals
+const MAX_HISTORY_PER_SENSOR = 300;
 const MAX_ANOMALY_LOG = 50;
 
 export function WebSocketProvider({ children }: { children: React.ReactNode }) {
@@ -94,12 +117,27 @@ export function WebSocketProvider({ children }: { children: React.ReactNode }) {
     globalAqi: 0,
     airqBurned: 0,
     citiesMonitored: 5,
+    airqBalance: 5000,
   });
+  const [mints, setMints] = useState<TxItem[]>([]);
 
   const readingHistoryRef = useRef<Map<number, SensorReading[]>>(new Map());
   const wsRef = useRef<WebSocket | null>(null);
   const reconnectAttempt = useRef(0);
   const mintedCountRef = useRef(0);
+
+  // Token economy: start at 5000, +~100 every 30s batch
+  const airqBalanceRef = useRef(5000);
+  const airqBurnedRef = useRef(0);
+
+  const burnAirq = useCallback((amount: number) => {
+    airqBalanceRef.current -= amount;
+    airqBurnedRef.current += amount;
+  }, []);
+
+  // Blockchain state — only populated when contracts are deployed
+  const onChainBatchCountRef = useRef(0);
+  const onChainBurnAmountRef = useRef(0);
 
   const triggerSpike = useCallback(async (sensorId?: number) => {
     try {
@@ -112,6 +150,71 @@ export function WebSocketProvider({ children }: { children: React.ReactNode }) {
     }
   }, []);
 
+  // ─── Blockchain Event Listeners (only when contracts are deployed) ───
+  useEffect(() => {
+    if (!isBlockchainConfigured()) {
+      console.log('⚠️ Blockchain not configured — running in simulation-only mode');
+      return;
+    }
+
+    let ledgerContract: ethers.Contract | null = null;
+    let airqContract: ethers.Contract | null = null;
+
+    try {
+      const provider = new ethers.JsonRpcProvider(AMOY_RPC_URL);
+      ledgerContract = new ethers.Contract(LEDGER_ADDRESS, LEDGER_ABI, provider);
+      airqContract = new ethers.Contract(AIRQ_ADDRESS, AIRQ_ABI, provider);
+
+      // Fetch initial totals
+      ledgerContract.totalBatches()
+        .then((count: bigint) => { onChainBatchCountRef.current = Number(count); })
+        .catch((e: Error) => console.warn('Failed to fetch batch count:', e.message));
+
+      // Live event listeners
+      ledgerContract.on('BatchMinted', (batchId: bigint, batchHash: string, block: bigint, ts: bigint, sensors: number) => {
+        console.log('⛓ On-chain BatchMinted event:', Number(batchId));
+        onChainBatchCountRef.current = Number(batchId);
+
+        setMints(prev => {
+          const existingIdx = prev.findIndex(t => t.batchHash === batchHash);
+          if (existingIdx !== -1) {
+            const updated = [...prev];
+            updated[existingIdx] = { ...updated[existingIdx], seq: Number(batchId) };
+            return updated;
+          }
+
+          const newTx: TxItem = {
+            id: Number(batchId),
+            batchHash,
+            timestamp: Number(ts) * 1000,
+            seq: Number(batchId),
+            avgAqi: 0,
+            sensorCount: sensors,
+            isSpike: false,
+            cityBreakdown: []
+          };
+          return [newTx, ...prev].slice(0, 50);
+        });
+      });
+
+      airqContract.on('TokensBurned', (_burner: string, amount: bigint) => {
+        const formatted = Number(ethers.formatEther(amount));
+        console.log('🔥 On-chain TokensBurned event:', formatted);
+        onChainBurnAmountRef.current += formatted;
+      });
+
+      console.log('✅ Blockchain listeners active on Amoy');
+    } catch (e) {
+      console.warn('Blockchain listener setup failed:', e);
+    }
+
+    return () => {
+      if (ledgerContract) ledgerContract.removeAllListeners();
+      if (airqContract) airqContract.removeAllListeners();
+    };
+  }, []); // Runs once on mount — no deps that cause reconnects
+
+  // ─── WebSocket Effect ───
   useEffect(() => {
     let mounted = true;
 
@@ -132,12 +235,7 @@ export function WebSocketProvider({ children }: { children: React.ReactNode }) {
         if (!mounted) return;
 
         try {
-          let textData;
-          if (event.data instanceof Blob) {
-            textData = await event.data.text();
-          } else {
-            textData = event.data;
-          }
+          const textData = event.data instanceof Blob ? await event.data.text() : event.data;
           const data: SensorBatch = JSON.parse(textData);
 
           if (data.type === 'SENSOR_UPDATE') {
@@ -147,9 +245,7 @@ export function WebSocketProvider({ children }: { children: React.ReactNode }) {
             // Update reading history
             const history = readingHistoryRef.current;
             data.readings.forEach((r) => {
-              if (!history.has(r.sensorId)) {
-                history.set(r.sensorId, []);
-              }
+              if (!history.has(r.sensorId)) history.set(r.sensorId, []);
               const arr = history.get(r.sensorId)!;
               arr.push(r);
               if (arr.length > MAX_HISTORY_PER_SENSOR) arr.shift();
@@ -158,31 +254,69 @@ export function WebSocketProvider({ children }: { children: React.ReactNode }) {
             // Process anomalies
             if (data.anomalies && data.anomalies.length > 0) {
               setAnomalies(data.anomalies);
-              setAllAnomalies((prev) => {
-                const next = [...data.anomalies, ...prev];
-                return next.slice(0, MAX_ANOMALY_LOG);
-              });
+              setAllAnomalies((prev) => [...data.anomalies, ...prev].slice(0, MAX_ANOMALY_LOG));
             } else {
               setAnomalies([]);
             }
 
-            // Update stats
-            // Simulate minted count: +100 every 30s (every 6th batch)
+            // Token economy: Every 6th sequence (30s) = 1 AIRQ per active sensor per batch
             if (data.seq % 6 === 0) {
-              mintedCountRef.current += 100;
+              const batchReward = data.activeSensors; // ~100 sensors = ~100 AIRQ
+              mintedCountRef.current += batchReward;
+              airqBalanceRef.current += batchReward;
             }
 
             const avgAqi = Math.round(
               data.readings.reduce((sum, r) => sum + r.aqi, 0) / data.readings.length
             );
 
+            // Use on-chain data if available, otherwise fall back to simulation
+            const minted = onChainBatchCountRef.current > 0
+              ? onChainBatchCountRef.current * 100
+              : mintedCountRef.current;
+
             setStats({
               activeSensors: data.activeSensors,
-              totalReadingsMinted: mintedCountRef.current,
+              totalReadingsMinted: minted,
               globalAqi: avgAqi,
-              airqBurned: 0, // Updated via blockchain events
+              airqBurned: airqBurnedRef.current,
               citiesMonitored: 5,
+              airqBalance: airqBalanceRef.current,
             });
+
+            // Persist Tx Items
+            if (data.seq % 6 === 0) {
+              const cityMap = new Map<string, { sum: number; count: number }>();
+              data.readings.forEach((r) => {
+                const cityData = cityMap.get(r.city) || { sum: 0, count: 0 };
+                cityData.sum += r.aqi;
+                cityData.count += 1;
+                cityMap.set(r.city, cityData);
+              });
+
+              const cityBreakdown = Array.from(cityMap.entries()).map(([city, d]) => ({
+                city,
+                avgAqi: Math.round(d.sum / d.count),
+                count: d.count,
+              }));
+
+              setMints(prev => {
+                const exists = prev.find(t => t.batchHash === data.batchHash);
+                if (exists) return prev;
+                
+                const newTx: TxItem = {
+                  id: data.seq,
+                  batchHash: data.batchHash,
+                  timestamp: data.timestamp,
+                  seq: data.seq,
+                  avgAqi,
+                  sensorCount: data.activeSensors,
+                  isSpike: data.anomalies && data.anomalies.length > 0,
+                  cityBreakdown,
+                };
+                return [newTx, ...prev].slice(0, 50);
+              });
+            }
           }
         } catch (e) {
           console.warn('Failed to parse WS message:', e);
@@ -205,8 +339,7 @@ export function WebSocketProvider({ children }: { children: React.ReactNode }) {
       };
 
       ws.onerror = () => {
-        if (!mounted) return;
-        setConnected(false);
+        if (!mounted) setConnected(false);
       };
     }
 
@@ -219,7 +352,7 @@ export function WebSocketProvider({ children }: { children: React.ReactNode }) {
         wsRef.current = null;
       }
     };
-  }, []);
+  }, []); // ← stable deps: no blockchain state here
 
   return (
     <WebSocketContext.Provider
@@ -232,6 +365,8 @@ export function WebSocketProvider({ children }: { children: React.ReactNode }) {
         connected,
         triggerSpike,
         readingHistory: readingHistoryRef.current,
+        burnAirq,
+        mints,
       }}
     >
       {children}

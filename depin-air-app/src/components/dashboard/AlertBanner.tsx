@@ -16,8 +16,8 @@ export default function AlertBanner() {
       setCurrentAlert(sorted[0]);
       setVisible(true);
 
-      // Auto-dismiss after 8 seconds
-      const timer = setTimeout(() => setVisible(false), 8000);
+      // Auto-dismiss after 10 seconds
+      const timer = setTimeout(() => setVisible(false), 10000);
       return () => clearTimeout(timer);
     }
   }, [anomalies]);
@@ -27,34 +27,39 @@ export default function AlertBanner() {
   const delta = currentAlert.delta > 0 ? `+${currentAlert.delta}` : currentAlert.delta;
 
   return (
-    <div
-      className="alert-slide-down absolute top-4 left-1/2 -translate-x-1/2 z-[1000] w-full max-w-xl px-4"
-    >
-      <div className="flex items-center gap-3 bg-accent-red px-4 py-2.5 rounded-xl shadow-2xl border border-white/10 text-white">
-        <span className="text-lg">⚠️</span>
-        <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-3 flex-1 min-w-0">
-          <span className="text-xs font-bold whitespace-nowrap">
-            SPIKE AT SENSOR #{currentAlert.sensorId}
-          </span>
-          <div className="flex items-center gap-2">
-            <Badge variant="default" className="bg-white/20 border-white/10 text-white">
-              {currentAlert.city}
-            </Badge>
-            <span className="text-sm font-black font-mono">
-              AQI {currentAlert.aqi}
-            </span>
-            <span className="text-[10px] opacity-80 font-medium">
-              ({delta} pts)
-            </span>
+    <div className="alert-slide-down fixed top-20 inset-x-0 z-[1500] flex justify-center pointer-events-none">
+      <div className="w-full max-w-2xl px-6 pointer-events-auto">
+        <div className="flex items-center gap-6 bg-accent-red px-8 py-5 rounded-md shadow-[0_0_50px_rgba(255,61,0,0.4)] border border-white/20 text-white relative overflow-hidden backdrop-blur-3xl">
+          <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent animate-shimmer pointer-events-none" />
+          <span className="text-2xl animate-pulse">⚠️</span>
+          <div className="flex items-center gap-8 flex-1 min-w-0">
+            <div className="flex flex-col">
+              <span className="text-[10px] font-black uppercase tracking-[0.4em] opacity-80 mb-1">Critical Network Event</span>
+              <span className="text-sm font-black whitespace-nowrap uppercase tracking-tighter">
+                SPIKE DETECTED AT SENSOR_#{currentAlert.sensorId}
+              </span>
+            </div>
+            <div className="flex items-center gap-4 border-l border-white/20 pl-8">
+              <Badge variant="default" className="bg-white/20 border-white/10 text-white shadow-none">
+                {currentAlert.city.toUpperCase()}
+              </Badge>
+              <div className="flex flex-col">
+                 <span className="text-xl font-black font-mono leading-none tracking-tighter">
+                   {currentAlert.aqi} AQI
+                 </span>
+                 <span className="text-[9px] font-black uppercase tracking-widest opacity-80">
+                   DELTA {delta} PTS
+                 </span>
+              </div>
+            </div>
           </div>
+          <button
+            onClick={() => setVisible(false)}
+            className="w-10 h-10 flex items-center justify-center hover:bg-white/10 rounded-full transition-all cursor-pointer border border-white/10 ml-4 group"
+          >
+            <span className="text-sm font-black group-hover:scale-110 transition-transform">✕</span>
+          </button>
         </div>
-        <button
-          onClick={() => setVisible(false)}
-          className="p-1 hover:bg-white/10 rounded-md transition-colors cursor-pointer"
-        >
-          <span className="sr-only">Dismiss</span>
-          ✕
-        </button>
       </div>
     </div>
   );

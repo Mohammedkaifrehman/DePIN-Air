@@ -4,6 +4,8 @@ import React, { useMemo } from 'react';
 import { WebSocketProvider, useWebSocket } from '@/context/WebSocketContext';
 import StatsBar from '@/components/dashboard/StatsBar';
 import Link from 'next/link';
+import { Badge } from '@/components/ui/Badge';
+import { Button } from '@/components/ui/Button';
 
 // Mock government data
 const GOVT_DATA = [
@@ -34,104 +36,109 @@ function ComparisonContent() {
   }, [readings]);
 
   return (
-    <div className="flex-1 overflow-auto p-4 md:p-8 bg-bg-primary">
-      <div className="max-w-5xl mx-auto">
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-12">
-          <div>
-            <h1 className="text-3xl font-black mb-2 flex items-center gap-3 text-text-primary">
-              🏛 vs 🌐 Network Audit
+    <div className="w-full px-6 lg:px-10 py-10 min-h-full">
+      <div className="flex flex-col gap-12 w-full">
+        {/* Header Section */}
+        <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-8 border-b border-white/5 pb-10">
+          <div className="flex flex-col gap-4">
+             <span className="text-[10px] font-black text-accent-green tracking-[0.5em] uppercase">Protocol Accuracy Audit</span>
+            <h1 className="text-4xl md:text-6xl font-black tracking-tighter uppercase leading-[0.9]">
+              <span className="text-text-primary">Network Accuracy</span> <br />
+              <span className="bg-clip-text text-transparent bg-gradient-to-r from-accent-purple to-accent-green">Verification</span>
             </h1>
-            <p className="text-text-secondary text-sm max-w-lg">
-              Comparing official government AQI figures against DePIN-Air live network readings city by city.
+            <p className="text-text-secondary text-base max-w-3xl leading-relaxed font-medium">
+              Real-time synchronization audit comparing sovereign government data streams 
+              against the decentralized DePIN-Air telemetry network. Powered by on-chain batch verification.
             </p>
           </div>
           
-          <div className="flex gap-3">
-            <div className="px-4 py-2 rounded-xl bg-bg-secondary border border-border-primary flex flex-col items-center">
-              <span className="text-[10px] text-text-muted uppercase tracking-wider mb-1">Live Status</span>
-              <div className="flex items-center gap-1.5">
-                <span className={`status-dot ${connected ? 'green' : 'red'}`} />
-                <span className="text-xs font-bold text-text-primary">{connected ? 'CONNECTED' : 'OFFLINE'}</span>
+          <div className="flex gap-4">
+            <div className="px-8 py-6 rounded-md bg-white/[0.03] border border-white/10 flex flex-col items-center min-w-[160px] shadow-2xl backdrop-blur-xl">
+              <span className="text-[9px] text-text-muted uppercase tracking-[0.3em] mb-3 font-black">NODE STATUS</span>
+              <div className="flex items-center gap-3">
+                <span className={`w-2 h-2 rounded-full ${connected ? 'bg-accent-green shadow-[0_0_10px_#00F5FF]' : 'bg-accent-red shadow-[0_0_10px_#FF3D00]'} animate-pulse`} />
+                <span className="text-sm font-black text-text-primary uppercase tracking-widest">{connected ? 'STABLE' : 'DROPPED'}</span>
               </div>
             </div>
-            <div className="px-4 py-2 rounded-xl bg-bg-secondary border border-border-primary flex flex-col items-center">
-              <span className="text-[10px] text-text-muted uppercase tracking-wider mb-1">Blockchain</span>
-              <span className="text-xs font-bold text-accent-green">VERIFIED</span>
+            <div className="px-8 py-6 rounded-md bg-white/[0.03] border border-white/10 flex flex-col items-center min-w-[160px] shadow-2xl backdrop-blur-xl">
+              <span className="text-[9px] text-text-muted uppercase tracking-[0.3em] mb-3 font-black">INTEGRITY</span>
+              <span className="text-sm font-black text-accent-green uppercase tracking-widest">VERIFIED✓</span>
             </div>
           </div>
         </div>
 
-        {/* Comparison Grid */}
-        <div className="grid grid-cols-1 gap-6">
-          <div className="overflow-hidden rounded-2xl bg-bg-secondary border border-border-primary">
-            <table className="w-full text-left border-collapse">
-              <thead>
-                <tr className="bg-bg-primary/50">
-                  <th className="px-6 py-4 text-xs font-bold text-text-muted uppercase tracking-wider">City</th>
-                  <th className="px-6 py-4 text-xs font-bold text-text-muted uppercase tracking-wider">CPCB Official (Govt)</th>
-                  <th className="px-6 py-4 text-xs font-bold text-text-muted uppercase tracking-wider text-center">DePIN-Air Live</th>
-                  <th className="px-6 py-4 text-xs font-bold text-text-muted uppercase tracking-wider text-right">Discrepancy</th>
-                </tr>
-              </thead>
-              <tbody className="text-text-primary">
-                {GOVT_DATA.map((govt) => {
-                  const live = cityAverages.find((c) => c.city === govt.city);
-                  const liveAqi = live?.avgAqi || 0;
-                  const diff = Math.abs(govt.aqi - liveAqi);
-                  const isSignificant = diff > 20;
+        {/* Comparison Table Section */}
+        <div className="w-full">
+          <div className="rounded-md bg-white/[0.02] backdrop-blur-xl border border-white/5 overflow-hidden shadow-2xl">
+            <div className="overflow-x-auto">
+              <table className="w-full text-left border-collapse min-w-[800px]">
+                <thead>
+                  <tr className="bg-white/[0.03] text-[10px] text-text-muted font-black uppercase tracking-[0.25em] border-b border-white/5 whitespace-nowrap">
+                    <th className="px-10 py-10">REGION AUTHORITY</th>
+                    <th className="px-10 py-10">GOVERNMENT INDEX</th>
+                    <th className="px-10 py-10 text-center">DePIN-AIR LIVE</th>
+                    <th className="px-10 py-10 text-right">VARIANT DELTA</th>
+                  </tr>
+                </thead>
+                <tbody className="text-text-primary">
+                  {GOVT_DATA.map((govt) => {
+                    const live = cityAverages.find((c) => c.city === govt.city);
+                    const liveAqi = live?.avgAqi || 0;
+                    const diff = Math.abs(govt.aqi - liveAqi);
+                    const isSignificant = diff > 20;
 
-                  return (
-                    <tr 
-                      key={govt.city} 
-                      className={`transition-colors border-t border-border-primary ${isSignificant ? 'bg-accent-amber/5' : 'hover:bg-white/5'}`}
-                    >
-                      <td className="px-6 py-6 font-bold text-lg">{govt.city}</td>
-                      <td className="px-6 py-6">
-                        <div className="flex flex-col">
-                          <span className="text-xl font-mono text-text-secondary">{govt.aqi}</span>
-                          <span className="text-[10px] text-text-muted">Source: CPCB API</span>
-                        </div>
-                      </td>
-                      <td className="px-6 py-6 text-center">
-                        <div className="flex flex-col items-center">
-                          <span className="text-2xl font-black font-mono" style={{ color: getAqiColor(liveAqi) }}>
-                            {liveAqi || '--'}
-                          </span>
-                          <span className="text-[10px] text-accent-green font-semibold">RECORDS MINTED ✓</span>
-                        </div>
-                      </td>
-                      <td className="px-6 py-6 text-right">
-                        <div className="flex flex-col items-end">
-                          <div className={`text-xl font-bold font-mono ${isSignificant ? 'text-accent-amber' : 'text-text-secondary'}`}>
-                            {liveAqi ? (liveAqi > govt.aqi ? `+${diff}` : `-${diff}`) : '--'}
+                    return (
+                      <tr 
+                        key={govt.city} 
+                        className={`transition-colors border-b border-white/5 group ${isSignificant ? 'bg-accent-amber/5' : 'hover:bg-white/[0.02]'}`}
+                      >
+                        <td className="px-8 py-8 font-black text-xl tracking-tighter uppercase">{govt.city}</td>
+                        <td className="px-8 py-8">
+                          <div className="flex flex-col gap-1">
+                            <span className="text-2xl font-black font-mono text-text-secondary">{govt.aqi}</span>
+                            <span className="text-[9px] text-text-muted font-black tracking-widest uppercase opacity-60">CPCB_SN_632</span>
                           </div>
-                          {isSignificant && (
-                            <span className="text-[8px] px-1.5 py-0.5 rounded bg-accent-amber/20 text-accent-amber font-black uppercase">
-                              Significant Discrepancy 🔴
+                        </td>
+                        <td className="px-8 py-8 text-center">
+                          <div className="flex flex-col items-center gap-1">
+                            <span className="text-3xl font-black font-mono tracking-tighter" style={{ color: getAqiColor(liveAqi) }}>
+                              {liveAqi || '--'}
                             </span>
-                          )}
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
+                            <Badge variant="premium">LIVE_MINT_OK</Badge>
+                          </div>
+                        </td>
+                        <td className="px-8 py-8 text-right">
+                          <div className="flex flex-col items-end gap-1">
+                            <div className={`text-2xl font-black font-mono ${isSignificant ? 'text-accent-amber' : 'text-text-secondary'}`}>
+                              {liveAqi ? (liveAqi > govt.aqi ? `+${diff}` : `-${diff}`) : '--'}
+                            </div>
+                            {isSignificant && (
+                              <span className="text-[8px] px-3 py-1 rounded-md bg-accent-amber/10 text-accent-amber font-black uppercase tracking-[0.2em] border border-accent-amber/30">
+                                ! DISCREPANCY DETECTED
+                              </span>
+                            )}
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
           </div>
         </div>
 
-        {/* Footer Disclaimer */}
-        <div className="mt-8 p-6 rounded-xl bg-bg-secondary border border-border-primary text-text-muted text-[11px] leading-relaxed">
-          <strong>DISCLAIMER:</strong> Government figures are sourced from CPCB (Central Pollution Control Board) historical public snapshots for demonstration purposes. DePIN-Air figures represent a simulated citizen-owned sensor network. Discrepancies may arise from sensor calibration, positioning, or reporting lag. These figures are for demonstration of network audit capabilities and not to be used for health decisions or legal evidence.
-        </div>
-        
-        <div className="flex justify-center mt-12 pb-12">
-          <Link 
-            href="/dashboard"
-            className="px-8 py-4 rounded-xl font-black text-sm text-white no-underline shadow-2xl transition-all hover:scale-105 bg-gradient-to-br from-accent-green to-[#148a63]"
-          >
-            ← BACK TO LIVE MAP
-          </Link>
+        {/* Footer Area */}
+        <div className="flex flex-col gap-12 w-full">
+          <div className="p-10 rounded-md bg-white/[0.03] border border-white/5 text-text-muted text-[10px] font-medium leading-relaxed w-full uppercase tracking-widest opacity-80 backdrop-blur-md px-10">
+            <strong className="text-accent-purple font-black">LEGAL_DISCLAIMER:</strong> Protocol figures represent decentralized citizen-operated nodes. Discrepancies may arise from local sensor positioning or asynchronous polling intervals. This audit is for technical verification of data integrity and not for environmental health certification.
+          </div>
+          
+          <div className="flex justify-center pb-20">
+             <Button onClick={() => window.location.href = '/dashboard'} size="lg" className="px-12 py-8 text-base">
+                RETURN TO NETWORK HUB
+             </Button>
+          </div>
         </div>
       </div>
     </div>
@@ -139,23 +146,22 @@ function ComparisonContent() {
 }
 
 function getAqiColor(aqi: number) {
-  if (aqi <= 50) return 'var(--accent-green)';
-  if (aqi <= 100) return 'var(--accent-amber)';
-  if (aqi <= 150) return 'var(--accent-orange)';
-  if (aqi <= 200) return 'var(--accent-red)';
-  return 'var(--accent-purple)';
+  if (aqi <= 50) return '#00F5FF';
+  if (aqi <= 100) return '#FFD600';
+  if (aqi <= 150) return '#FF8A00';
+  if (aqi <= 200) return '#FF3D00';
+  return '#B026FF';
 }
 
 export default function ComparePage() {
   return (
-    <WebSocketProvider>
-      <div className="min-h-screen flex flex-col bg-bg-primary overflow-hidden">
-        <StatsBar />
-        <main className="flex-1 overflow-auto mt-[var(--stats-bar-height)]">
-          <ComparisonContent />
-        </main>
-      </div>
-    </WebSocketProvider>
+    <div className="h-screen flex flex-col bg-bg-primary overflow-hidden">
+      <StatsBar />
+      <div className="h-[52px] shrink-0" />
+      <main className="flex-1 overflow-auto">
+        <ComparisonContent />
+       </main>
+    </div>
   );
 }
 

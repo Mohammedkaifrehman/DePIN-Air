@@ -3,6 +3,33 @@ const http = require('http');
 const { createHash } = require('crypto');
 const fs = require('fs');
 const path = require('path');
+const { ethers } = require('ethers');
+
+// ─── Blockchain Configuration ───
+// These should ideally be in .env
+const RPC_URL = process.env.RPC_URL || 'https://rpc-amoy.polygon.technology';
+const PRIVATE_KEY = process.env.PRIVATE_KEY; 
+const LEDGER_ADDRESS = process.env.LEDGER_ADDRESS;
+
+let wallet = null;
+let ledgerContract = null;
+
+if (PRIVATE_KEY && LEDGER_ADDRESS) {
+  try {
+    const provider = new ethers.JsonRpcProvider(RPC_URL);
+    wallet = new ethers.Wallet(PRIVATE_KEY, provider);
+    const abi = [
+      "function mintBatch(bytes32 _batchHash, tuple(string city, uint8 sensorCount, uint16 avgAQI, uint16 maxAQI, uint16 minAQI)[] _cityReadings, uint256 _timestamp, uint8 _totalSensors) external",
+      "function mintSpike(uint16 _sensorId, uint16 _aqi, bytes32 _spikeHash, uint256 _timestamp) external"
+    ];
+    ledgerContract = new ethers.Contract(LEDGER_ADDRESS, abi, wallet);
+    console.log(`\x1b[32m⛓ Blockchain integrated. Operator: ${wallet.address}\x1b[0m`);
+  } catch (e) {
+    console.error('\x1b[31mFailed to initialize blockchain connection:\x1b[0m', e.message);
+  }
+} else {
+  console.log('\x1b[33m⚠️ Blockchain credentials missing. Running in simulation-only mode.\x1b[0m');
+}
 
 // ─── Load Sensor Data ───
 const sensorsPath = path.join(__dirname, '..', 'public', 'data', 'sensors.json');
@@ -21,10 +48,9 @@ const CITY_BASE_AQI = {
 const sensorState = new Map();
 const rollingWindows = new Map();
 let batchSequence = 0;
-let spikeQueue = [];          // Manual spike requests
-let activeSpikeCountdown = new Map(); // sensorId → remaining spike readings
+let spikeQueue = [];          
+let activeSpikeCountdown = new Map(); 
 
-// Initialize sensor state with slight randomness
 sensors.forEach((s) => {
   const base = CITY_BASE_AQI[s.city];
   sensorState.set(s.id, {
@@ -36,7 +62,7 @@ sensors.forEach((s) => {
   rollingWindows.set(s.id, []);
 });
 
-// ─── Gaussian Random (Box-Muller) ───
+// ─── Gaussian Random ───
 function gaussianRandom(mean = 0, sigma = 12) {
   let u1 = Math.random();
   let u2 = Math.random();
@@ -45,17 +71,20 @@ function gaussianRandom(mean = 0, sigma = 12) {
   return mean + z * sigma;
 }
 
-// ─── keccak256 via crypto (SHA-256 as stand-in, real keccak needs ethers) ───
+// ─── Keccak256 Hash ───
 function computeBatchHash(readings) {
   const data = JSON.stringify(readings.map(r => ({
     id: r.sensorId,
     aqi: r.aqi,
     ts: r.timestamp,
   })));
+  // Use ethers if possible for real Keccak256, else fallback to SHA256 bytes
+  if (typeof ethers !== 'undefined' && ethers.keccak256) {
+    return ethers.keccak256(ethers.toUtf8Bytes(data));
+  }
   return '0x' + createHash('sha256').update(data).digest('hex');
 }
 
-// ─── AQI Color ───
 function getAqiColor(aqi) {
   if (aqi <= 50) return '#1D9E75';
   if (aqi <= 100) return '#EF9F27';
@@ -66,10 +95,62 @@ function getAqiColor(aqi) {
 
 // ─── Spike Management ───
 let naturalSpikeTimer = 0;
-const NATURAL_SPIKE_INTERVAL = 18; // Every 18 broadcasts = 90s (18 × 5s)
+const NATURAL_SPIKE_INTERVAL = 18; 
 
 function selectRandomSensorForSpike() {
   return sensors[Math.floor(Math.random() * sensors.length)].id;
+}
+
+// ─── Blockchain Sync ───
+async function mintBatchOnChain(batch) {
+  if (!ledgerContract) return;
+
+  try {
+    const cityMap = new Map();
+    batch.readings.forEach(r => {
+      const data = cityMap.get(r.city) || { city: r.city, sensorCount: 0, sum: 0, max: 0, min: 999 };
+      data.sensorCount++;
+      data.sum += r.aqi;
+      data.max = Math.max(data.max, r.aqi);
+      data.min = Math.min(data.min, r.aqi);
+      cityMap.set(r.city, data);
+    });
+
+    const cityReadings = Array.from(cityMap.values()).map(c => ({
+      city: c.city,
+      sensorCount: c.sensorCount,
+      avgAQI: Math.round(c.sum / c.sensorCount),
+      maxAQI: Math.round(c.max),
+      minAQI: Math.round(c.min)
+    }));
+
+    const tx = await ledgerContract.mintBatch(
+      batch.batchHash,
+      cityReadings,
+      Math.floor(batch.timestamp / 1000),
+      batch.activeSensors
+    );
+    console.log(`\x1b[32m✅ Batch #${batch.seq} minted on-chain: ${tx.hash}\x1b[0m`);
+    // No await here to not block the simulator loop
+  } catch (e) {
+    console.error(`\x1b[31m❌ Failed to mint batch #${batch.seq}:\x1b[0m`, e.message);
+  }
+}
+
+async function mintSpikeOnChain(anomaly) {
+  if (!ledgerContract) return;
+
+  try {
+    const tx = await ledgerContract.mintSpike(
+      anomaly.sensorId,
+      Math.round(anomaly.aqi),
+      anomaly.spikeHash,
+      Math.floor(anomaly.timestamp / 1000)
+    );
+    console.log(`\x1b[35m🚨 Anomaly #${anomaly.sensorId} minted on-chain: ${tx.hash}\x1b[0m`);
+  } catch (e) {
+    console.error(`\x1b[31m❌ Failed to mint spike for #${anomaly.sensorId}:\x1b[0m`, e.message);
+  }
 }
 
 // ─── Generate Readings ───
@@ -77,7 +158,6 @@ function generateReadings() {
   const now = Date.now();
   naturalSpikeTimer++;
 
-  // Natural spike trigger
   if (naturalSpikeTimer >= NATURAL_SPIKE_INTERVAL) {
     naturalSpikeTimer = 0;
     const spikeId = selectRandomSensorForSpike();
@@ -87,7 +167,6 @@ function generateReadings() {
     }
   }
 
-  // Process manual spike queue
   while (spikeQueue.length > 0) {
     const manualId = spikeQueue.shift();
     if (!activeSpikeCountdown.has(manualId)) {
@@ -101,35 +180,27 @@ function generateReadings() {
     const baseAqi = CITY_BASE_AQI[sensor.city];
     let isSpike = false;
 
-    // Check if this sensor is in spike mode
     if (activeSpikeCountdown.has(sensor.id)) {
       const remaining = activeSpikeCountdown.get(sensor.id);
       if (remaining > 0) {
-        // Spike: AQI 240-290
         state.aqi = 240 + Math.random() * 50;
         isSpike = true;
         activeSpikeCountdown.set(sensor.id, remaining - 1);
       } else {
-        // Exponential decay back to base
         state.aqi = state.aqi * 0.7 + baseAqi * 0.3;
         if (Math.abs(state.aqi - baseAqi) < 15) {
           activeSpikeCountdown.delete(sensor.id);
         }
       }
     } else {
-      // Normal: Gaussian drift around base
       state.aqi = state.aqi * 0.85 + baseAqi * 0.15 + gaussianRandom(0, 12);
     }
 
-    // Clamp AQI
     state.aqi = Math.max(10, Math.min(500, state.aqi));
-
-    // Derive pollutant values from AQI with independent noise
     state.pm25 = state.aqi * 0.68 + gaussianRandom(0, 5);
     state.no2 = 15 + state.aqi * 0.18 + gaussianRandom(0, 3);
     state.co2 = 320 + state.aqi * 0.5 + gaussianRandom(0, 8);
 
-    // Update rolling window for Z-score
     const window = rollingWindows.get(sensor.id);
     window.push(state.aqi);
     if (window.length > 20) window.shift();
@@ -157,11 +228,11 @@ function generateReadings() {
     timestamp: now,
     batchHash,
     readings,
-    activeSensors: 97 + Math.floor(Math.random() * 7), // 97-103
+    activeSensors: 97 + Math.floor(Math.random() * 7), 
   };
 }
 
-// ─── Anomaly Detection (Z-Score) ───
+// ─── Anomaly Detection ───
 function detectAnomalies(readings) {
   const anomalies = [];
 
@@ -177,9 +248,8 @@ function detectAnomalies(readings) {
     const prevAqi = window.length > 1 ? window[window.length - 2] : r.aqi;
     const delta = r.aqi - prevAqi;
 
-    // Z > 2.5 OR delta > 80 OR absolute > 220
     if (zscore > 2.5 || delta > 80 || r.aqi > 220) {
-      anomalies.push({
+      const anomaly = {
         sensorId: r.sensorId,
         city: r.city,
         aqi: r.aqi,
@@ -189,10 +259,12 @@ function detectAnomalies(readings) {
         stddev: Math.round(stddev * 10) / 10,
         type: zscore > 2.5 ? 'Z_SCORE' : delta > 80 ? 'DELTA' : 'ABSOLUTE',
         timestamp: r.timestamp,
-        spikeHash: '0x' + createHash('sha256')
-          .update(`spike-${r.sensorId}-${r.aqi}-${r.timestamp}`)
-          .digest('hex'),
-      });
+        spikeHash: ethers.keccak256(ethers.toUtf8Bytes(`spike-${r.sensorId}-${r.aqi}-${r.timestamp}`)),
+      };
+      anomalies.push(anomaly);
+      
+      // Trigger instant blockchain mint for spike
+      mintSpikeOnChain(anomaly);
     }
   });
 
@@ -203,7 +275,6 @@ function detectAnomalies(readings) {
 const PORT = process.env.PORT || 8080;
 
 const httpServer = http.createServer((req, res) => {
-  // CORS headers
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
@@ -216,7 +287,6 @@ const httpServer = http.createServer((req, res) => {
 
   const url = new URL(req.url, `http://localhost:${PORT}`);
 
-  // Health check
   if (url.pathname === '/health') {
     res.writeHead(200, { 'Content-Type': 'application/json' });
     res.end(JSON.stringify({
@@ -229,20 +299,12 @@ const httpServer = http.createServer((req, res) => {
     return;
   }
 
-  // Manual spike trigger
   if (url.pathname === '/api/spike' && req.method === 'POST') {
     const sensorId = parseInt(url.searchParams.get('id') || '-1');
-    if (sensorId >= 0 && sensorId < 100) {
-      spikeQueue.push(sensorId);
-      res.writeHead(200, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({ ok: true, sensorId, message: `Spike queued for sensor #${sensorId}` }));
-    } else {
-      // Random sensor
-      const randomId = selectRandomSensorForSpike();
-      spikeQueue.push(randomId);
-      res.writeHead(200, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({ ok: true, sensorId: randomId, message: `Spike queued for random sensor #${randomId}` }));
-    }
+    const targetId = (sensorId >= 0 && sensorId < 100) ? sensorId : selectRandomSensorForSpike();
+    spikeQueue.push(targetId);
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({ ok: true, sensorId: targetId, message: `Spike queued for sensor #${targetId}` }));
     return;
   }
 
@@ -254,19 +316,11 @@ const wss = new WebSocketServer({ server: httpServer });
 
 wss.on('connection', (ws) => {
   console.log(`\x1b[32m+ Client connected (total: ${wss.clients.size})\x1b[0m`);
-
-  ws.on('close', () => {
-    console.log(`\x1b[31m- Client disconnected (total: ${wss.clients.size})\x1b[0m`);
-  });
-
-  ws.on('error', (err) => {
-    console.error('WebSocket error:', err.message);
-  });
+  ws.on('close', () => console.log(`\x1b[31m- Client disconnected (total: ${wss.clients.size})\x1b[0m`));
+  ws.on('error', (err) => console.error('WebSocket error:', err.message));
 });
 
 // ─── Broadcast Loop ───
-let broadcastCount = 0;
-
 function broadcast() {
   const batch = generateReadings();
   const anomalies = detectAnomalies(batch.readings);
@@ -278,59 +332,34 @@ function broadcast() {
   });
 
   const buf = Buffer.from(payload);
-  let sent = 0;
-
   wss.clients.forEach((client) => {
-    if (client.readyState === 1) { // WebSocket.OPEN
-      client.send(buf);
-      sent++;
-    }
+    if (client.readyState === 1) client.send(buf);
   });
 
-  broadcastCount++;
-  const spikeSensors = batch.readings.filter(r => r.isSpike);
-  const avgAqi = Math.round(
-    batch.readings.reduce((sum, r) => sum + r.aqi, 0) / batch.readings.length
-  );
+  // Mint batch every 30s (every 6th broadcast at 5s interval)
+  if (batch.seq % 6 === 0) {
+    mintBatchOnChain(batch);
+  }
 
-  // Console logging
+  const avgAqi = Math.round(batch.readings.reduce((sum, r) => sum + r.aqi, 0) / batch.readings.length);
   const time = new Date().toISOString().slice(11, 19);
-  let logLine = `[${time}] Batch #${batch.seq} | AQI avg: ${avgAqi} | Sensors: ${batch.activeSensors} | Clients: ${sent}`;
-
-  if (spikeSensors.length > 0) {
-    const spikeInfo = spikeSensors.map(s => `#${s.sensorId}(${s.aqi})`).join(', ');
-    logLine += ` | \x1b[31m🔴 SPIKES: ${spikeInfo}\x1b[0m`;
-  }
-
-  if (anomalies.length > 0) {
-    logLine += ` | \x1b[33m⚠ Anomalies: ${anomalies.length}\x1b[0m`;
-  }
-
-  console.log(logLine);
-  console.log(`  Hash: ${batch.batchHash.substring(0, 18)}...`);
+  console.log(`[${time}] Batch #${batch.seq} | AQI avg: ${avgAqi} | Sensors: ${batch.activeSensors} | Clients: ${wss.clients.size}`);
 }
 
-// Start broadcasting every 5 seconds
 setInterval(broadcast, 5000);
 
 httpServer.listen(PORT, () => {
   console.log(`
 ╔═══════════════════════════════════════════════╗
-║     🌍 DePIN-Air Sensor Simulator v1.0       ║
+║     🌍 DePIN-Air Sensor Simulator v2.0       ║
 ║     WebSocket: ws://localhost:${PORT}           ║
-║     HTTP API:  http://localhost:${PORT}          ║
-║     Sensors:   ${sensors.length} across 5 cities           ║
-║     Interval:  5 seconds                      ║
+║     Features:  On-chain Minting (Mumbai)      ║
 ╚═══════════════════════════════════════════════╝
   `);
-
-  // Initial broadcast
   broadcast();
 });
 
-// Graceful shutdown
 process.on('SIGTERM', () => {
-  console.log('\\nShutting down gracefully...');
   wss.clients.forEach(client => client.close(1001, 'Server shutting down'));
   httpServer.close(() => process.exit(0));
 });

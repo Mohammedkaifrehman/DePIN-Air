@@ -14,6 +14,7 @@ const SensorMapInner = () => {
   const mapContainerRef = useRef<HTMLDivElement>(null);
 
   const [heatmapActive, setHeatmapActive] = useState(false);
+  const [coverageActive, setCoverageActive] = useState(false);
   const [L, setL] = useState<any>(null);
 
   // Load Leaflet dynamically
@@ -144,6 +145,8 @@ const SensorMapInner = () => {
     }
   }, [L, readings, heatmapActive]);
 
+  const toggleCoverage = () => setCoverageActive(!coverageActive);
+
   function createPopupContent(r: SensorReading, isAnomaly: boolean): string {
     const time = new Date(r.timestamp).toLocaleTimeString();
     return `
@@ -213,6 +216,15 @@ const SensorMapInner = () => {
         >
           <span>🌡</span>
           <span className="ml-2 hidden sm:inline">AQI Heatmap</span>
+        </Button>
+        <Button
+          variant={coverageActive ? 'primary' : 'secondary'}
+          size="sm"
+          onClick={toggleCoverage}
+          className="shadow-2xl"
+        >
+          <span>⬢</span>
+          <span className="ml-2 hidden sm:inline">Coverage Grid</span>
         </Button>
         <Button
           variant="secondary"

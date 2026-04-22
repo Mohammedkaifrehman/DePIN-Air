@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Inter, JetBrains_Mono } from "next/font/google";
+import { Inter, JetBrains_Mono, Space_Grotesk } from "next/font/google";
 import "./globals.css";
 
 const inter = Inter({
@@ -14,12 +14,21 @@ const jetbrainsMono = JetBrains_Mono({
   weight: ["400", "500", "600", "700"],
 });
 
+const spaceGrotesk = Space_Grotesk({
+  variable: "--font-space-grotesk",
+  subsets: ["latin"],
+  weight: ["300", "400", "500", "600", "700"],
+});
+
 export const metadata: Metadata = {
   title: "DePIN-Air | Decentralized Air Quality Network",
   description:
     "Real-time air quality data from 100 sensors, permanently recorded on Polygon blockchain. No government. No trust required.",
   keywords: ["DePIN", "air quality", "blockchain", "Polygon", "ESG", "IoT", "sensors"],
 };
+
+import { WalletProvider } from "@/context/WalletContext";
+import { WebSocketProvider } from "@/context/WebSocketContext";
 
 export default function RootLayout({
   children,
@@ -29,7 +38,7 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${inter.variable} ${jetbrainsMono.variable} h-full`}
+      className={`${inter.variable} ${jetbrainsMono.variable} ${spaceGrotesk.variable} h-full`}
     >
       <head>
         <link
@@ -38,8 +47,12 @@ export default function RootLayout({
           crossOrigin=""
         />
       </head>
-      <body className="min-h-full flex flex-col" style={{ fontFamily: "'Inter', sans-serif" }}>
-        {children}
+      <body className="min-h-full flex flex-col bg-bg-primary text-text-primary overflow-x-hidden rounded-md" style={{ fontFamily: "var(--font-space-grotesk), sans-serif" }}>
+        <WalletProvider>
+          <WebSocketProvider>
+            {children}
+          </WebSocketProvider>
+        </WalletProvider>
       </body>
     </html>
   );

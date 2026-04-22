@@ -19,7 +19,7 @@ export const Modal = ({ isOpen, onClose, title, children, footer, maxWidth = 'ma
       <div className="absolute inset-0 bg-black/70 backdrop-blur-md" onClick={onClose} />
       
       <div 
-        className={`relative w-full ${maxWidth} bg-bg-secondary border border-border-primary rounded-2xl shadow-2xl overflow-hidden fade-in`}
+        className={`relative w-full ${maxWidth} bg-bg-secondary border border-border-primary rounded-md shadow-2xl overflow-hidden fade-in`}
         onClick={e => e.stopPropagation()}
       >
         <div className="px-6 py-4 border-b border-border-primary flex items-center justify-between">

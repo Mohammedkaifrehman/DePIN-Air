@@ -16,8 +16,9 @@ export const Card = ({ children, className = '', onClick, hoverable = false, sty
       onClick={onClick}
       style={style}
       className={`
-        bg-bg-secondary border border-border-primary rounded-xl overflow-hidden
-        ${hoverable ? 'card-hover cursor-pointer' : ''}
+        bg-white/[0.03] backdrop-blur-2xl border border-white/10 rounded-md overflow-hidden
+        transition-all duration-300
+        ${hoverable ? 'hover:bg-white/[0.06] hover:border-accent-green/30 hover:-translate-y-1 cursor-pointer shadow-2xl' : ''}
         ${className}
       `}
     >

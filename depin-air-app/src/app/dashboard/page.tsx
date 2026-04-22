@@ -22,25 +22,23 @@ export default function DashboardPage() {
   }, []);
 
   return (
-    <WebSocketProvider>
-      <div className="flex flex-col h-screen w-screen overflow-hidden bg-bg-primary">
-        <StatsBar />
-        
-        <main className="relative flex-1 w-full overflow-hidden">
-          <SensorMap />
-          <AlertBanner />
-          <AlertLog />
-          <TxSidebar />
-        </main>
+    <div className="h-screen w-screen overflow-hidden bg-bg-primary">
+      <StatsBar />
+      
+      <main className="relative w-full overflow-hidden" style={{ height: 'calc(100vh - var(--stats-bar-height))', marginTop: 'var(--stats-bar-height)' }}>
+        <SensorMap />
+        <AlertBanner />
+        <AlertLog />
+        <TxSidebar />
+      </main>
 
-        {selectedSensorId !== null && (
-          <SensorChartModal 
-            sensorId={selectedSensorId} 
-            onClose={() => setSelectedSensorId(null)} 
-          />
-        )}
-      </div>
-    </WebSocketProvider>
+      {selectedSensorId !== null && (
+        <SensorChartModal 
+          sensorId={selectedSensorId} 
+          onClose={() => setSelectedSensorId(null)} 
+        />
+      )}
+    </div>
   );
 }
 
