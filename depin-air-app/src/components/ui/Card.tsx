@@ -28,13 +28,13 @@ export const Card = ({ children, className = '', onClick, hoverable = false, sty
 };
 
 export const CardHeader = ({ children, className = '' }: { children: React.ReactNode, className?: string }) => (
-  <div className={`px-4 py-3 border-b border-border-primary flex items-center justify-between ${className}`}>
+  <div className={`px-6 py-4 border-b border-border-primary flex items-center justify-between ${className}`}>
     {children}
   </div>
 );
 
 export const CardContent = ({ children, className = '' }: { children: React.ReactNode, className?: string }) => (
-  <div className={`p-4 ${className}`}>
+  <div className={`p-6 ${className}`}>
     {children}
   </div>
 );

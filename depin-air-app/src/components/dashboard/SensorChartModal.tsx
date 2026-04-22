@@ -141,20 +141,20 @@ export default function SensorChartModal({ sensorId, onClose }: SensorChartModal
       <div className="absolute inset-0 bg-black/60 backdrop-blur-2xl" onClick={onClose} />
       
       <div 
-        className="relative w-full max-w-4xl max-h-[90vh] bg-white/[0.03] border border-white/10 rounded-[3rem] shadow-2xl overflow-hidden flex flex-col fade-in backdrop-blur-3xl"
+        className="relative w-full max-w-4xl max-h-[90vh] bg-white/[0.03] border border-white/10 rounded-md shadow-2xl overflow-hidden flex flex-col fade-in backdrop-blur-3xl"
         onClick={e => e.stopPropagation()}
       >
         <div className="px-10 py-8 border-b border-white/5 flex items-center justify-between bg-white/[0.02]">
           <div className="flex items-center gap-6">
             <div className="flex flex-col">
-              <span className="text-[10px] font-black text-accent-cyan tracking-[0.4em] uppercase mb-1">Node Diagnostics</span>
+              <span className="text-[10px] font-bold text-accent-cyan tracking-widest uppercase mb-1">Node Diagnostics</span>
               <h2 className="text-3xl font-black text-text-primary uppercase tracking-tighter">NODE_#{sensorId}</h2>
             </div>
             <div className="h-10 w-px bg-white/10 mx-2" />
             <div className="flex items-center gap-4">
                <Badge variant="info">{currentSensor?.city.toUpperCase()}</Badge>
                {sensorData.some(d => d.isSpike) && (
-                 <div className="px-3 py-1 rounded-md bg-accent-red/20 text-accent-red text-[9px] font-black uppercase tracking-widest border border-accent-red/30 animate-pulse">
+                 <div className="px-3 py-1 rounded-md bg-accent-red/20 text-accent-red text-[10px] font-bold uppercase tracking-widest border border-accent-red/30 animate-pulse">
                    Critical Spike
                  </div>
                )}
@@ -162,7 +162,7 @@ export default function SensorChartModal({ sensorId, onClose }: SensorChartModal
           </div>
           <button 
             onClick={onClose} 
-            className="w-12 h-12 flex items-center justify-center rounded-full border border-white/5 hover:bg-white/10 hover:border-white/20 transition-all group"
+            className="w-12 h-12 flex items-center justify-center rounded-md border border-white/5 hover:bg-white/10 hover:border-white/20 transition-all group"
           >
             <span className="text-xl font-black group-hover:scale-110 transition-transform">✕</span>
           </button>
@@ -172,19 +172,19 @@ export default function SensorChartModal({ sensorId, onClose }: SensorChartModal
           <div className="flex gap-4 mb-10">
             <button 
               onClick={() => setActiveTab('aqi')}
-              className={`px-8 py-3 rounded-full text-[10px] font-black uppercase tracking-[0.2em] transition-all border ${activeTab === 'aqi' ? 'bg-accent-cyan text-black border-accent-cyan' : 'bg-transparent text-text-muted border-white/10 hover:border-white/30'}`}
+              className={`px-8 py-3 rounded-md text-[10px] font-bold uppercase tracking-widest transition-all border ${activeTab === 'aqi' ? 'bg-accent-cyan text-black border-accent-cyan' : 'bg-transparent text-text-muted border-white/10 hover:border-white/30'}`}
             >
               AQI Trend
             </button>
             <button 
               onClick={() => setActiveTab('pollutants')}
-              className={`px-8 py-3 rounded-full text-[10px] font-black uppercase tracking-[0.2em] transition-all border ${activeTab === 'pollutants' ? 'bg-accent-purple text-white border-accent-purple shadow-[0_0_15px_#B026FF40]' : 'bg-transparent text-text-muted border-white/10 hover:border-white/30'}`}
+              className={`px-8 py-3 rounded-md text-[10px] font-bold uppercase tracking-widest transition-all border ${activeTab === 'pollutants' ? 'bg-accent-purple text-white border-accent-purple shadow-[0_0_15px_#B026FF40]' : 'bg-transparent text-text-muted border-white/10 hover:border-white/30'}`}
             >
               Pollutants
             </button>
           </div>
 
-          <div className="h-[350px] w-full mb-10 bg-white/[0.01] rounded-[2rem] p-6 border border-white/5">
+          <div className="h-[350px] w-full mb-10 bg-white/[0.01] rounded-md p-6 border border-white/5">
             <Line data={chartData} options={options} />
           </div>
 
@@ -198,14 +198,14 @@ export default function SensorChartModal({ sensorId, onClose }: SensorChartModal
 
         <div className="px-10 py-6 bg-white/[0.02] border-t border-white/5 flex items-center justify-between">
           <div className="flex items-center gap-6">
-             <span className="text-[10px] font-black text-text-muted uppercase tracking-[0.3em] opacity-40">PROTOCOL_V2_INSIGHTS</span>
+             <span className="text-[10px] font-bold text-text-muted uppercase tracking-widest opacity-40">PROTOCOL_V2_INSIGHTS</span>
              <div className="flex items-center gap-3">
                <span className="w-2 h-2 rounded-full bg-accent-green shadow-[0_0_5px_#00F5FF]" />
-               <span className="text-[9px] font-black uppercase tracking-widest text-accent-green">Proof of Environmental Data (PoED) Stable</span>
+               <span className="text-[10px] font-bold uppercase tracking-widest text-accent-green">Proof of Environmental Data (PoED) Stable</span>
              </div>
           </div>
           <button 
-            className="text-[10px] text-text-primary hover:text-accent-cyan font-black uppercase tracking-[0.3em] transition-colors"
+            className="text-[10px] text-text-primary hover:text-accent-cyan font-bold uppercase tracking-widest transition-colors"
             onClick={() => window.open('https://amoy.polygonscan.com', '_blank')}
           >
             Terminal Scan ↗
@@ -218,11 +218,11 @@ export default function SensorChartModal({ sensorId, onClose }: SensorChartModal
 
 function StatBox({ label, value, unit, color }: { label: string, value: string | number, unit: string, color: string }) {
   return (
-    <div className="p-8 rounded-[2rem] bg-white/[0.02] border border-white/5 hover:border-white/20 transition-all flex flex-col gap-2 shadow-xl group">
-      <span className="text-[9px] text-text-muted uppercase tracking-[0.4em] font-black group-hover:text-text-secondary transition-colors">{label}</span>
+    <div className="p-8 rounded-md bg-white/[0.02] border border-white/5 hover:border-white/20 transition-all flex flex-col gap-2 shadow-xl group">
+      <span className="text-[10px] font-bold text-text-muted uppercase tracking-widest group-hover:text-text-secondary transition-colors">{label}</span>
       <div className="flex items-baseline gap-2">
         <span className="text-4xl font-black font-mono tracking-tighter" style={{ color }}>{value}</span>
-        <span className="text-[10px] font-black text-text-muted opacity-40 uppercase tracking-widest">{unit}</span>
+        <span className="text-[10px] font-bold uppercase tracking-widest text-text-muted opacity-40">{unit}</span>
       </div>
     </div>
   );

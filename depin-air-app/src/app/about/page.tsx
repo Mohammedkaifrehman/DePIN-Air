@@ -1,117 +1,117 @@
 'use client';
 
 import React from 'react';
+import Link from 'next/link';
 import StatsBar from '@/components/dashboard/StatsBar';
+import DashboardBackground from '@/components/layout/DashboardBackground';
+import { useWebSocket } from '@/context/WebSocketContext';
+import { Button } from '@/components/ui/Button';
 
 export default function AboutPage() {
+  const { stats } = useWebSocket();
+
   return (
-    <div className="h-screen flex flex-col bg-bg-primary overflow-hidden font-inter">
+    <div className="h-screen flex flex-col bg-transparent overflow-hidden">
+      <DashboardBackground />
       <StatsBar />
       <div className="h-[52px] shrink-0" />
-      <main className="flex-1 overflow-auto bg-[radial-gradient(circle_at_bottom_left,_var(--accent-purple-dim),_transparent_40%)]">
-        <div className="w-full px-6 lg:px-10 py-10 flex flex-col gap-16">
-          {/* Hero Section */}
-          <div className="grid grid-cols-1 md:grid-cols-12 gap-10 items-end border-b border-white/5 pb-16">
-            <div className="md:col-span-8 flex flex-col gap-6">
-              <span className="text-[10px] font-black text-accent-cyan tracking-[0.25em] uppercase">Project Genesis v2.0</span>
-              <h1 className="text-6xl md:text-8xl font-black text-text-primary tracking-tighter uppercase leading-[0.85]">
-                Decentralized <br /> 
-                <span className="bg-clip-text text-transparent bg-gradient-to-r from-accent-green to-accent-purple">Atmosphere</span> <br />
-                Finality
-              </h1>
-            </div>
-            <div className="md:col-span-4 flex flex-col gap-4">
-              <span className="text-[10px] font-black text-accent-green tracking-[0.25em] uppercase">SYSTEM MANIFESTO</span>
-              <p className="text-base text-text-secondary leading-relaxed font-medium">
-                DePIN-Air is a sovereign physical infrastructure network engineered to solve the global transparency crisis in environmental telemetry.
-              </p>
-            </div>
-          </div>
-
-          {/* Main Grid Content */}
-          <div className="grid grid-cols-1 md:grid-cols-12 gap-16">
-            {/* Left Content (8 columns) */}
-            <div className="md:col-span-8 flex flex-col gap-16">
-              <section className="flex flex-col gap-8">
-                <div className="flex items-baseline gap-4">
-                   <span className="text-5xl font-black text-accent-green opacity-20">01</span>
-                   <h2 className="text-[10px] font-black text-text-muted tracking-[0.25em] uppercase">Mission Objective</h2>
-                </div>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-12 border-l border-white/10 pl-10">
-                  <p className="text-sm text-text-secondary leading-relaxed font-medium uppercase tracking-[0.05em]">
-                    Environmental data is a fundamental human right. Legacy monitoring systems are centralized, vertically siloed, and susceptible to geopolitical filtering. DePIN-Air bypasses these gatekeepers by incentivizing the deployment of high-precision sensor arrays directly into the community.
-                  </p>
-                  <p className="text-sm text-text-secondary leading-relaxed font-medium uppercase tracking-[0.05em]">
-                    By anchoring every measurement on the Polygon POS blockchain, we establish a permanent, immutable record that functions as the source of truth for global environmental stewardship. Total transparency is the only viable path to climate accountability.
-                  </p>
-                </div>
-              </section>
-
-              <section className="flex flex-col gap-8">
-                <div className="flex items-baseline gap-4">
-                    <span className="text-5xl font-black text-accent-purple opacity-20">02</span>
-                    <h2 className="text-[10px] font-black text-text-muted tracking-[0.25em] uppercase">Technical Consensus</h2>
-                </div>
-                <div className="bg-white/[0.03] backdrop-blur-3xl p-12 rounded-md border border-white/10 shadow-2xl relative overflow-hidden">
-                   <div className="absolute top-0 right-0 w-48 h-48 bg-accent-green/5 rounded-full blur-3xl -mr-24 -mt-24" />
-                  <p className="text-2xl font-black text-text-primary mb-10 tracking-tight leading-tight uppercase">
-                    "The network achieves finality through hardware-bound cryptographic batches, ensuring data integrity without centralized intervention."
-                  </p>
-                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-8">
-                    <TechItem label="Infrastructure" value="Polygon" />
-                    <TechItem label="Consensus" value="30s Batch" />
-                    <TechItem label="Nodes" value="100+ Global" />
-                    <TechItem label="Asset" value="AIRQ" />
-                  </div>
-                </div>
-              </section>
-            </div>
-
-            {/* Right Rail (4 columns) */}
-            <div className="md:col-span-4 flex flex-col gap-10">
-              <div className="bg-white/[0.02] p-10 rounded-md border border-white/5 flex flex-col gap-8 shadow-xl backdrop-blur-xl">
-                <h3 className="text-[10px] font-black text-text-primary uppercase tracking-[0.25em]">Network Architecture</h3>
-                <div className="flex flex-col gap-4">
-                  <SpecItem label="Sensor Grid" value="SPS30-ALPHA" />
-                  <SpecItem label="Ledger v2" value="Polygon_Amoy" />
-                  <SpecItem label="Payload" value="Protobuf/JSON" />
-                  <SpecItem label="Verification" value="On-Chain_Audit" />
-                </div>
-              </div>
-
-              <div className="p-10 rounded-md bg-accent-green/5 border border-accent-green/20 flex flex-col gap-6 backdrop-blur-md">
-                <h3 className="text-[10px] font-black text-accent-green uppercase tracking-[0.25em]">Protocol Governance</h3>
-                <p className="text-[11px] text-text-secondary leading-relaxed font-black uppercase tracking-widest opacity-80">
-                  Global expansion and calibration standards are governed by the AIRQ DAO. All infrastructure upgrades are proposed, debated, and anchored on-chain.
+      
+      <main className="flex-1 overflow-auto">
+        <div className="w-full max-w-[1920px] mx-auto px-6 lg:px-10 py-12 min-h-full">
+          <div className="flex flex-col gap-12 w-full">
+            
+            {/* Header Section - Dashboard Style */}
+            <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-8 border-b border-white/5 pb-10">
+              <div className="flex flex-col gap-4">
+                <h1 className="text-5xl md:text-7xl font-black tracking-tighter uppercase leading-[1]">
+                  <span className="text-gradient bg-gradient-to-r from-accent-purple to-accent-green">
+                    The Network Protocol
+                  </span>
+                </h1>
+                <p className="text-sm md:text-base text-text-secondary max-w-3xl leading-relaxed font-medium">
+                  Decentralized Infrastructure for Global Atmospheric Integrity. 
+                  Protocol Manifest v2.{stats.activeSensors}-HYPER settlement active.
                 </p>
               </div>
+              
+              <div className="flex gap-4">
+                <div className="px-6 py-6 border border-white/10 bg-white/[0.02] backdrop-blur-xl flex flex-col items-center min-w-[160px] shadow-2xl rounded-md">
+                  <span className="text-[10px] text-text-muted font-bold tracking-widest uppercase mb-3">NODES LIVE</span>
+                  <div className="flex items-center gap-3">
+                    <span className="w-2 h-2 rounded-full bg-accent-green shadow-[0_0_10px_#00F5FF] animate-pulse" />
+                    <span className="text-lg font-bold text-text-primary tabular-nums tracking-tight">{stats.activeSensors}</span>
+                  </div>
+                </div>
+                <div className="px-6 py-6 border border-white/10 bg-white/[0.02] backdrop-blur-xl flex flex-col items-center min-w-[160px] shadow-2xl rounded-md">
+                  <span className="text-[10px] text-text-muted font-bold tracking-widest uppercase mb-3">INTEGRITY</span>
+                  <span className="text-lg font-bold text-accent-green uppercase tracking-tight">STABLE ✓</span>
+                </div>
+              </div>
             </div>
-          </div>
 
-          {/* Bottom Callout */}
-          <div className="w-full py-20 flex justify-center border-t border-white/5">
-             <span className="text-[9px] font-black text-text-muted tracking-[0.4em] uppercase opacity-40 text-center px-6">DECENTRALIZED · PERMEABLE · INTEGRATED · NETWORK</span>
+            {/* Narrative Content - Grid Style */}
+            <div className="grid grid-cols-1 md:grid-cols-12 gap-10">
+              <div className="col-span-12 md:col-span-4 flex flex-col gap-8">
+                <div className="p-8 border-l-2 border-accent-purple bg-white/[0.02] backdrop-blur-xl rounded-r-md">
+                  <h3 className="text-[10px] font-bold uppercase tracking-[0.2em] text-accent-cyan mb-4">01. THE PROBLEM</h3>
+                  <p className="text-sm text-text-secondary leading-relaxed font-medium uppercase tracking-widest opacity-80">
+                    Modern air quality data is fragmented, centralized, and prone to administrative manipulation. Cities often position sensors in optimal zones, hiding the true atmospheric cost.
+                  </p>
+                </div>
+                <div className="p-8 border-l-2 border-accent-cyan bg-white/[0.02] backdrop-blur-xl rounded-r-md">
+                  <h3 className="text-[10px] font-bold uppercase tracking-[0.2em] text-accent-purple mb-4">02. THE SOLUTION</h3>
+                  <p className="text-sm text-text-secondary leading-relaxed font-medium uppercase tracking-widest opacity-80">
+                    DePIN-Air decentralizes the stack. Using citizen-operated hardware nodes and blockchain, we create a high-fidelity environmental ledger that is immutable.
+                  </p>
+                </div>
+              </div>
+
+              <div className="col-span-12 md:col-span-8">
+                <div className="p-10 h-full border border-white/5 bg-white/[0.01] backdrop-blur-3xl rounded-md relative overflow-hidden group shadow-2xl">
+                   <div className="absolute top-0 right-0 p-10 opacity-10 text-8xl group-hover:scale-110 transition-transform">🛰️</div>
+                   <h3 className="text-accent-purple font-black text-2xl uppercase tracking-tighter mb-8">Protocol Economics</h3>
+                   <p className="text-text-secondary text-lg leading-relaxed mb-10 max-w-2xl font-medium uppercase tracking-widest opacity-80">
+                      AIRQ tokens incentivize node operators to maintain uptime. Every sensor reading is a cryptographic proof of atmosphere, minted onto the Polygon network. 
+                      Enterprise demand for these reports drives a sustainable deflationary burn mechanism.
+                   </p>
+                   <div className="grid grid-cols-2 gap-8 pt-8 border-t border-white/5">
+                      <div className="flex flex-col">
+                        <span className="text-[10px] text-text-muted font-bold tracking-widest mb-1 uppercase">Block Finality</span>
+                        <span className="text-xl font-black text-text-primary tracking-tight uppercase">Instant settlement</span>
+                      </div>
+                      <div className="flex flex-col">
+                        <span className="text-[10px] text-text-muted font-bold tracking-widest mb-1 uppercase">Emission Rate</span>
+                        <span className="text-xl font-black text-text-primary tracking-tight uppercase">1.0 AIRQ / Batch</span>
+                      </div>
+                   </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Beneficiaries Area */}
+            <div className="w-full pt-12">
+               <h3 className="text-[10px] font-bold text-text-muted uppercase tracking-[0.4em] mb-12 text-center">Verified Network Stakeholders</h3>
+               <div className="flex flex-wrap justify-center gap-x-20 gap-y-10 opacity-30 grayscale hover:grayscale-0 transition-all pb-20">
+                  <span className="text-2xl font-black uppercase tracking-tighter text-white">Google India</span>
+                  <span className="text-2xl font-black uppercase tracking-tighter text-white">Tata Steel</span>
+                  <span className="text-2xl font-black uppercase tracking-tighter text-white">Microsoft</span>
+                  <span className="text-2xl font-black uppercase tracking-tighter text-white">Reliance</span>
+                  <span className="text-2xl font-black uppercase tracking-tighter text-white">Amazon</span>
+               </div>
+            </div>
+
+            {/* Bottom CTA */}
+            <div className="flex justify-center pb-20">
+               <Link href="/dashboard" passHref>
+                 <Button size="lg" className="px-12 py-8 text-base">
+                    ENTER COMMAND CENTER
+                 </Button>
+               </Link>
+            </div>
+
           </div>
         </div>
       </main>
-    </div>
-  );
-}
-
-function TechItem({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="flex flex-col gap-2">
-      <span className="text-[9px] font-black text-text-muted uppercase tracking-[0.2em]">{label}</span>
-      <span className="text-base font-black text-text-primary uppercase tracking-widest whitespace-nowrap">{value}</span>
-    </div>
-  );
-}
-
-function SpecItem({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="flex justify-between items-center border-b border-white/5 pb-4 gap-4">
-      <span className="text-[9px] font-black text-text-muted uppercase tracking-widest whitespace-nowrap">{label}</span>
-      <span className="text-[10px] font-mono text-accent-green font-black uppercase whitespace-nowrap">{value}</span>
     </div>
   );
 }

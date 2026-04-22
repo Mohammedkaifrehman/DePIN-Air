@@ -247,7 +247,7 @@ const SensorMap = dynamic(() => Promise.resolve(SensorMapInner), {
     <div className="flex items-center justify-center w-full h-full bg-bg-primary">
       <div className="flex flex-col items-center gap-4">
         <div className="w-10 h-10 border-3 border-accent-green border-t-transparent rounded-full animate-spin" />
-        <span className="text-sm font-medium text-text-secondary animate-pulse">
+        <span className="text-sm font-bold text-text-muted uppercase tracking-widest animate-pulse">
           Initializing Global Network...
         </span>
       </div>

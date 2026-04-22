@@ -34,8 +34,8 @@ export default function AlertBanner() {
           <span className="text-2xl animate-pulse">⚠️</span>
           <div className="flex items-center gap-8 flex-1 min-w-0">
             <div className="flex flex-col">
-              <span className="text-[10px] font-black uppercase tracking-[0.4em] opacity-80 mb-1">Critical Network Event</span>
-              <span className="text-sm font-black whitespace-nowrap uppercase tracking-tighter">
+              <span className="text-[10px] font-bold uppercase tracking-widest opacity-80 mb-1">Critical Network Event</span>
+              <span className="text-sm font-bold whitespace-nowrap uppercase tracking-tight">
                 SPIKE DETECTED AT SENSOR_#{currentAlert.sensorId}
               </span>
             </div>
@@ -44,10 +44,10 @@ export default function AlertBanner() {
                 {currentAlert.city.toUpperCase()}
               </Badge>
               <div className="flex flex-col">
-                 <span className="text-xl font-black font-mono leading-none tracking-tighter">
+                 <span className="text-xl font-bold tabular-nums leading-none tracking-tight">
                    {currentAlert.aqi} AQI
                  </span>
-                 <span className="text-[9px] font-black uppercase tracking-widest opacity-80">
+                 <span className="text-[10px] font-bold uppercase tracking-widest opacity-80">
                    DELTA {delta} PTS
                  </span>
               </div>

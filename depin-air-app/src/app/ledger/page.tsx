@@ -5,23 +5,27 @@ import { useWebSocket } from '@/context/WebSocketContext';
 import StatsBar from '@/components/dashboard/StatsBar';
 import { Badge } from '@/components/ui/Badge';
 
+import DashboardBackground from '@/components/layout/DashboardBackground';
+
 export default function LedgerPage() {
-  const { stats } = useWebSocket();
+  const { stats, mints } = useWebSocket();
 
   return (
-    <div className="h-screen flex flex-col bg-bg-primary overflow-hidden">
+    <div className="h-screen flex flex-col bg-transparent overflow-hidden">
+      <DashboardBackground />
       <StatsBar />
       <div className="h-[52px] shrink-0" />
-      <main className="flex-1 overflow-auto bg-[radial-gradient(circle_at_top_right,_var(--accent-purple-dim),_transparent_40%)]">
-        <div className="w-full px-6 lg:px-10 py-10 flex flex-col gap-10">
+      <main className="flex-1 overflow-auto">
+        <div className="w-full max-w-7xl mx-auto px-6 py-12 flex flex-col gap-12">
           {/* Header Section */}
           <div className="w-full flex justify-between items-end border-b border-white/5 pb-10">
             <div className="flex flex-col gap-4">
-               <span className="text-[10px] font-black text-accent-cyan tracking-[0.5em] uppercase">Trustless History Hub</span>
-              <h1 className="text-5xl md:text-7xl font-black text-text-primary tracking-tighter uppercase leading-[0.85]">
-                Protocol <br /> Ledger
+              <h1 className="text-5xl md:text-7xl font-black tracking-tighter uppercase leading-none">
+                <span className="text-gradient bg-gradient-to-r from-accent-purple to-accent-green">
+                  Protocol Ledger
+                </span>
               </h1>
-              <p className="text-xs text-text-secondary font-black uppercase tracking-[0.3em] opacity-80">
+              <p className="text-sm font-medium text-text-secondary uppercase tracking-widest opacity-80 leading-relaxed">
                 Immutable Batch Records · Cross-Verification · Polygon POS Mainnet
               </p>
             </div>
@@ -36,41 +40,52 @@ export default function LedgerPage() {
             <div className="overflow-x-auto">
               <table className="w-full text-left border-collapse min-w-[950px]">
                 <thead>
-                  <tr className="bg-white/[0.03] text-[10px] text-text-muted font-black uppercase tracking-[0.25em] border-b border-white/5 whitespace-nowrap">
-                    <th className="px-12 py-10">BATCH IDENTIFIER</th>
-                    <th className="px-12 py-10">CRYPTOGRAPHIC HASH_SUM</th>
-                    <th className="px-12 py-10 text-center">BLOCK</th>
-                    <th className="px-12 py-10 text-center">ACTIVE_NODES</th>
-                    <th className="px-12 py-10 text-right">PROTOCOL STATUS</th>
+                  <tr className="bg-white/[0.03] text-[10px] text-text-muted font-bold uppercase tracking-widest border-b border-white/5 whitespace-nowrap">
+                    <th className="px-8 py-6">BATCH IDENTIFIER</th>
+                    <th className="px-8 py-6">CRYPTOGRAPHIC HASH_SUM</th>
+                    <th className="px-8 py-6 text-center">BLOCK</th>
+                    <th className="px-8 py-6 text-center">ACTIVE_NODES</th>
+                    <th className="px-8 py-6 text-right">PROTOCOL STATUS</th>
                   </tr>
                 </thead>
                 <tbody className="text-text-primary">
-                  {[...Array(15)].map((_, i) => (
-                    <tr key={i} className="border-b border-white/5 hover:bg-white/[0.03] transition-colors group">
-                      <td className="px-10 py-8 font-mono text-base font-black text-accent-green tracking-tighter">
-                        #{98842 - i}
-                      </td>
-                      <td className="px-10 py-8 font-mono text-[11px] text-text-secondary group-hover:text-text-primary transition-colors tracking-widest opacity-70">
-                        0x{Math.random().toString(16).substring(2, 18).toUpperCase()}...{Math.random().toString(16).substring(2, 10).toUpperCase()}
-                      </td>
-                      <td className="px-10 py-8 text-center font-mono text-sm text-text-muted font-black">
-                        7240{i}
-                      </td>
-                      <td className="px-10 py-8 text-center">
-                         <Badge variant="info">
-                           {Math.floor(Math.random() * 20) + 95} NODES
-                         </Badge>
-                      </td>
-                      <td className="px-10 py-8 text-right">
-                         <Badge variant="success">PROVEN ✓</Badge>
+                  {mints.length === 0 ? (
+                    <tr>
+                      <td colSpan={5} className="py-20 text-center">
+                        <div className="flex flex-col items-center gap-4 opacity-40">
+                          <div className="w-8 h-8 border-2 border-accent-cyan border-t-transparent rounded-full animate-spin" />
+                          <span className="text-[10px] font-bold uppercase tracking-widest">Awaiting Live Ledger Sync...</span>
+                        </div>
                       </td>
                     </tr>
-                  ))}
+                  ) : (
+                    mints.map((tx) => (
+                      <tr key={tx.id} className="border-b border-white/5 hover:bg-white/[0.03] transition-colors group">
+                        <td className="px-8 py-6 font-bold text-base font-mono tabular-nums text-accent-green tracking-tight">
+                          #{tx.seq}
+                        </td>
+                        <td className="px-8 py-6 font-mono text-xs tabular-nums text-text-secondary group-hover:text-text-primary transition-colors tracking-widest opacity-70">
+                          {tx.batchHash}
+                        </td>
+                        <td className="px-8 py-6 text-center font-mono tabular-nums text-sm text-text-muted font-bold">
+                          7240{tx.seq % 100}
+                        </td>
+                        <td className="px-8 py-6 text-center">
+                           <Badge variant="info" className="tabular-nums font-bold">
+                             {tx.sensorCount} NODES
+                           </Badge>
+                        </td>
+                        <td className="px-8 py-6 text-right">
+                           <Badge variant="success" className="font-bold">PROVEN ✓</Badge>
+                        </td>
+                      </tr>
+                    ))
+                  )}
                 </tbody>
               </table>
             </div>
-            <div className="p-10 bg-white/[0.01] text-center border-t border-white/5">
-              <span className="text-[10px] font-black text-text-muted uppercase tracking-[0.5em] cursor-pointer hover:text-accent-purple transition-all duration-300">
+            <div className="p-8 bg-white/[0.01] text-center border-t border-white/5">
+              <span className="text-[10px] font-bold text-text-muted uppercase tracking-widest cursor-pointer hover:text-accent-purple transition-all duration-300">
                 DECODE HISTORICAL EPOCHS ↓
               </span>
             </div>
@@ -84,8 +99,8 @@ export default function LedgerPage() {
 function LogStat({ label, value }: { label: string; value: number | string }) {
   return (
     <div className="flex flex-col items-end gap-1">
-      <span className="text-[9px] font-black text-text-muted uppercase tracking-[0.4em]">{label}</span>
-      <span className="text-4xl font-black text-text-primary font-mono tracking-tighter leading-none">{value}</span>
+      <span className="text-[10px] font-bold text-text-muted uppercase tracking-widest">{label}</span>
+      <span className="text-4xl font-black text-text-primary tabular-nums tracking-tighter leading-none">{value}</span>
     </div>
   );
 }

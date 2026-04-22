@@ -17,12 +17,12 @@ export default function AlertLog() {
       <div className="px-6 py-5 border-b border-white/5 flex items-center justify-between bg-white/[0.02]">
         <div className="flex items-center gap-3">
           <span className="w-2 h-2 rounded-full bg-accent-red animate-pulse shadow-[0_0_8px_var(--accent-red)]" />
-          <span className="text-[10px] font-black uppercase tracking-[0.3em] text-text-primary">
+          <span className="text-[10px] font-bold uppercase tracking-widest text-text-primary">
             Anomaly Stream
           </span>
         </div>
         <div className="px-2 py-0.5 rounded bg-accent-red/20 border border-accent-red/30">
-           <span className="text-[9px] font-black text-accent-red">{allAnomalies.length}</span>
+           <span className="text-[10px] font-bold tabular-nums text-accent-red">{allAnomalies.length}</span>
         </div>
       </div>
 
@@ -30,7 +30,7 @@ export default function AlertLog() {
         {alerts.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-20 gap-4 opacity-40">
              <div className="w-6 h-6 border border-text-muted border-t-transparent rounded-full animate-spin" />
-             <span className="text-[9px] font-black uppercase tracking-widest text-text-muted">
+             <span className="text-[10px] font-bold uppercase tracking-widest text-text-muted">
                Scanning Network...
              </span>
           </div>
@@ -53,21 +53,21 @@ export default function AlertLog() {
                         {alert.city.toUpperCase()}
                       </Badge>
                     </div>
-                    <span className="text-[11px] font-black font-mono text-accent-red tracking-tighter">
+                    <span className="text-xs font-bold tabular-nums text-accent-red tracking-tight">
                       {alert.aqi} AQI
                     </span>
                   </div>
                   
                   <div className="flex items-center justify-between opacity-80">
-                    <span className="text-[9px] font-black uppercase tracking-widest text-text-muted group-hover:text-text-secondary transition-colors">
+                    <span className="text-[10px] font-bold uppercase tracking-widest text-text-muted group-hover:text-text-secondary transition-colors tabular-nums">
                       NODE_#{alert.sensorId}
                     </span>
-                    <span className="text-[9px] font-black uppercase text-text-muted">
+                    <span className="text-[10px] font-bold uppercase text-text-muted tabular-nums">
                       {time}
                     </span>
                   </div>
                   
-                  <div className="mt-3 text-[8px] font-mono text-text-muted truncate opacity-30 group-hover:opacity-60 transition-opacity">
+                  <div className="mt-3 text-[10px] font-mono text-text-muted truncate opacity-30 group-hover:opacity-60 transition-opacity">
                     HSH: {alert.spikeHash.toUpperCase()}
                   </div>
                 </div>
@@ -77,7 +77,7 @@ export default function AlertLog() {
         )}
       </div>
       <div className="p-4 bg-white/[0.02] border-t border-white/5 text-center">
-         <span className="text-[8px] font-black text-text-muted uppercase tracking-[0.4em]">Sentinel Module Active</span>
+         <span className="text-[10px] font-bold text-text-muted uppercase tracking-widest">Sentinel Module Active</span>
       </div>
     </div>
   );

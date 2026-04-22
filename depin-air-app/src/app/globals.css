@@ -273,3 +273,23 @@ body {
   color: var(--accent-green);
   background: rgba(29, 158, 117, 0.1);
 }
+
+/* ─── Industrial Design System ─── */
+.industrial-border { 
+  border: 1px solid rgba(255, 255, 255, 0.1); 
+}
+.glow-cyan { 
+  text-shadow: 0 0 10px rgba(0, 240, 255, 0.5); 
+}
+.glow-box-cyan { 
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.1), 0 0 20px rgba(0, 240, 255, 0.1); 
+}
+.glow-box-purple { 
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.1), 0 0 20px rgba(189, 0, 255, 0.1); 
+}
+.text-gradient { 
+  background-clip: text; 
+  -webkit-background-clip: text; 
+  -webkit-text-fill-color: transparent; 
+}
+
