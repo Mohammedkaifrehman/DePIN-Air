@@ -8,13 +8,25 @@ export default function AlertBanner() {
   const { anomalies } = useWebSocket();
   const [visible, setVisible] = useState(false);
   const [currentAlert, setCurrentAlert] = useState<Anomaly | null>(null);
+  const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
-    if (anomalies.length > 0) {
+    setMounted(true);
+  }, []);
+
+  useEffect(() => {
+    if (mounted && anomalies.length > 0) {
       // Show the most severe anomaly 
       const sorted = [...anomalies].sort((a, b) => b.aqi - a.aqi);
-      setCurrentAlert(sorted[0]);
-      setVisible(true);
+      const topAlert = sorted[0];
+      
+      setTimeout(() => {
+        setCurrentAlert(prev => {
+          if (prev?.timestamp === topAlert.timestamp && prev?.sensorId === topAlert.sensorId) return prev;
+          return topAlert;
+        });
+        setVisible(true);
+      }, 0);
 
       // Auto-dismiss after 10 seconds
       const timer = setTimeout(() => setVisible(false), 10000);

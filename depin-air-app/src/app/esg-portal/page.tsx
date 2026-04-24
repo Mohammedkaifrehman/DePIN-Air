@@ -3,9 +3,9 @@
 import React, { useState, useEffect } from 'react';
 import { WebSocketProvider, useWebSocket } from '@/context/WebSocketContext';
 import StatsBar from '@/components/dashboard/StatsBar';
-import { jsPDF } from 'jspdf';
 import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
+import { generateCityReport, generateNationalAudit } from '@/lib/pdf';
 
 const COMPANIES = [
   { name: 'Google India', id: 'goog', city: 'Hyderabad' },
@@ -19,14 +19,21 @@ function ESGPortalContent() {
   const { stats, connected, readings, burnAirq } = useWebSocket();
   const [selectedCompany, setSelectedCompany] = useState(COMPANIES[0]);
   const [isBurning, setIsBurning] = useState(false);
-  const [burnHistory, setBurnHistory] = useState<{ id: string; date: string; type: string; amount: number; tx: string; city: string }[]>([]);
+  const [burnHistory, setBurnHistory] = useState<{ id: string; date: string; type: string; amount: number; tx: string; companyName: string; city: string }[]>([]);
 
   // Internal state for demo balance if context is low, or just use context
   const displayBalance = stats.airqBalance;
 
-  // Start with fresh history every session as requested
+  // Load history from localStorage on mount
   useEffect(() => {
-    setBurnHistory([]);
+    const saved = localStorage.getItem('depin_burn_history_final');
+    if (saved) {
+      try {
+        setBurnHistory(JSON.parse(saved));
+      } catch (e) {
+        console.error('Failed to parse burn history', e);
+      }
+    }
   }, []);
 
   const saveHistory = (newHistory: typeof burnHistory) => {
@@ -34,108 +41,7 @@ function ESGPortalContent() {
     setBurnHistory(newHistory);
   };
 
-  const generatePDF = (type: string, company: { name: string; city: string }, tx: string) => {
-    try {
-      const doc = new jsPDF();
-      const date = new Date().toLocaleString();
-      const safeCompany = company.name.replace(/[^a-z0-9]/gi, '_');
 
-      // Filter readings for the specific city
-      const cityReadings = readings.filter(r => r.city === company.city);
-      const avgAqi = cityReadings.length > 0 
-        ? Math.round(cityReadings.reduce((sum, r) => sum + r.aqi, 0) / cityReadings.length)
-        : stats.globalAqi;
-      const avgPm25 = cityReadings.length > 0 
-        ? (cityReadings.reduce((sum, r) => sum + r.pm25, 0) / cityReadings.length).toFixed(1)
-        : "12.4";
-      const avgNo2 = cityReadings.length > 0 
-        ? (cityReadings.reduce((sum, r) => sum + r.no2, 0) / cityReadings.length).toFixed(1)
-        : "18.2";
-
-      // Header Banner
-      doc.setFillColor(5, 5, 5); 
-      doc.rect(0, 0, 210, 45, 'F');
-      
-      // Branding
-      doc.setTextColor(176, 38, 255);
-      doc.setFontSize(26);
-      doc.setFont('helvetica', 'bold');
-      doc.text('DePIN-Air', 15, 20);
-      
-      doc.setTextColor(255, 255, 255);
-      doc.setFontSize(14);
-      doc.text('Decentralized Environmental Audit', 15, 30);
-      
-      doc.setFontSize(9);
-      doc.setFont('helvetica', 'normal');
-      doc.text(`CERTIFICATE ID: DA-${Math.random().toString(36).substring(2, 10).toUpperCase()}`, 15, 38);
-      doc.text(`ISSUED: ${date}`, 140, 38);
-
-      // Section 1: Entity Info
-      doc.setTextColor(0, 0, 0);
-      doc.setFontSize(12);
-      doc.setFont('helvetica', 'bold');
-      doc.text('AUDIT BENEFICIARY', 15, 60);
-      doc.line(15, 62, 195, 62);
-      
-      doc.setFont('helvetica', 'normal');
-      doc.setFontSize(10);
-      doc.text(`Organization Name: ${company.name}`, 15, 70);
-      doc.text(`Primary HQ Zone: ${company.city}, India`, 15, 76);
-      doc.text(`Audit Scope: ${type} Regional Performance`, 15, 82);
-      doc.text(`Protocol Consensus: v2.0-HYPER`, 15, 88);
-
-      // Section 2: Environmental Telemetry
-      doc.setFont('helvetica', 'bold');
-      doc.setFontSize(12);
-      doc.text(`${company.city.toUpperCase()} TELEMETRY DATA`, 15, 100);
-      doc.line(15, 102, 195, 102);
-
-      doc.setFont('helvetica', 'normal');
-      doc.setFontSize(10);
-      const metrics = [
-        ['Metric Name', 'Observed Value', 'Protocol Status'],
-        [`${company.city} AQI Avg`, `${avgAqi} AQI`, 'VERIFIED'],
-        ['PM2.5 Saturation', `${avgPm25} ug/m3`, 'STABLE'],
-        ['NO2 Concentration', `${avgNo2} ppb`, 'OPTIMAL'],
-        ['Sensor Health Index', '99.2%', 'HEALTHY'],
-        ['Localized Node Count', `${cityReadings.length} Nodes`, 'LIVE'],
-      ];
-
-      let yPos = 110;
-      metrics.forEach((row, i) => {
-        if (i === 0) doc.setFont('helvetica', 'bold');
-        else doc.setFont('helvetica', 'normal');
-        doc.text(row[0], 15, yPos);
-        doc.text(row[1], 80, yPos);
-        doc.text(row[2], 150, yPos);
-        yPos += 8;
-      });
-
-      // Section 3: Protocol Verification
-      doc.setFont('helvetica', 'bold');
-      doc.setFontSize(12);
-      doc.text('PROTOCOL VERIFICATION', 15, 165);
-      doc.line(15, 167, 195, 167);
-      
-      doc.setFont('helvetica', 'normal');
-      doc.setFontSize(8);
-      doc.setFont('courier', 'normal');
-      doc.text(`Tx Hash: ${tx}`, 15, 175);
-      doc.text(`Source Entropy: ${Math.random().toString(16).substring(2, 32)}`, 15, 181);
-      doc.text(`Blockchain: Polygon POS Mainnet Settlement`, 15, 187);
-
-      // Footer
-      doc.setFont('helvetica', 'italic');
-      doc.setFontSize(7);
-      doc.setTextColor(150, 150, 150);
-      doc.text('This is a cryptographically generated ESG audit. Data is pulled from decentralized hardware nodes.', 105, 285, { align: 'center' });
-      
-      doc.save(`DePIN-Air-ESG-${safeCompany}.pdf`);
-    } catch (err) {
-      console.error('PDF Error:', err);
-    }
-  };
 
   const handleBurn = async (type: 'City' | 'National', cost: number) => {
     if (stats.airqBalance < cost) {
@@ -144,12 +50,39 @@ function ESGPortalContent() {
     }
     setIsBurning(true);
     await new Promise(r => setTimeout(r, 1500));
-    const tx = '0x' + Math.random().toString(16).substring(2, 18) + '...';
-    burnAirq(cost);
-    const newEntry = { id: Math.random().toString(36).substring(7), date: new Date().toLocaleString(), type, amount: cost, tx, city: selectedCompany.city };
+    const reportHash = '0x' + Math.random().toString(16).substring(2, 66);
+    const txHash = '0x' + Math.random().toString(16).substring(2, 66);
+    
+    const newEntry = { 
+      id: Math.random().toString(36).substring(7), 
+      date: new Date().toLocaleString(), 
+      type, 
+      amount: cost, 
+      tx: txHash.substring(0, 18) + '...', 
+      companyName: selectedCompany.name, 
+      city: selectedCompany.city,
+      reportHash,
+      blockNumber: 56789123
+    };
     saveHistory([newEntry, ...burnHistory]);
     setIsBurning(false);
-    generatePDF(type, selectedCompany, tx);
+
+    const pdfParams = {
+      company: selectedCompany.name,
+      city: selectedCompany.city,
+      airqBurned: cost,
+      reportHash,
+      txHash,
+      blockNumber: 56789123,
+      contractAddress: process.env.NEXT_PUBLIC_PORTAL_ADDRESS || "",
+      isSimulated: true
+    };
+
+    if (type === 'City') {
+      generateCityReport(pdfParams);
+    } else {
+      generateNationalAudit(pdfParams);
+    }
   };
 
   return (
@@ -257,7 +190,25 @@ function ESGPortalContent() {
                             {item.tx} 
                           </td>
                           <td className="py-5 px-8 text-right">
-                             <Button size="sm" variant="ghost" className="text-[10px] uppercase tracking-widest font-bold" onClick={() => generatePDF(item.type, selectedCompany.name, item.tx)}>
+                             <Button 
+                               size="sm" 
+                               variant="ghost" 
+                               className="text-[10px] uppercase tracking-widest font-bold" 
+                               onClick={() => {
+                                 const pdfParams = {
+                                   company: item.companyName || 'Unknown Entity',
+                                   city: item.city,
+                                   airqBurned: item.amount,
+                                   reportHash: (item as any).reportHash || '0x' + Math.random().toString(16).substring(2, 66),
+                                   txHash: (item as any).txHash || '0x' + Math.random().toString(16).substring(2, 66),
+                                   blockNumber: (item as any).blockNumber || 56789123,
+                                   contractAddress: process.env.NEXT_PUBLIC_PORTAL_ADDRESS || "",
+                                   isSimulated: true
+                                 };
+                                 if (item.type === 'City') generateCityReport(pdfParams);
+                                 else generateNationalAudit(pdfParams);
+                               }}
+                             >
                                EXTRACT PDF ↗
                              </Button>
                           </td>

@@ -146,7 +146,10 @@ export default function LandingPage() {
   );
 
   const [mounted, setMounted] = useState(false);
-  useEffect(() => setMounted(true), []);
+  useEffect(() => {
+    const timer = setTimeout(() => setMounted(true), 0);
+    return () => clearTimeout(timer);
+  }, []);
 
   return (
     <div className="min-h-screen w-full flex flex-col bg-[#080808] overflow-x-hidden overflow-y-auto text-white">

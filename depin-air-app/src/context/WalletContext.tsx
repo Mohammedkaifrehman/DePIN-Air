@@ -20,6 +20,36 @@ export function WalletProvider({ children }: { children: React.ReactNode }) {
   const [isConnecting, setIsConnecting] = useState(false);
   const [provider, setProvider] = useState<any>(null);
 
+  const switchNetwork = async () => {
+    if (typeof window !== 'undefined' && (window as any).ethereum) {
+      try {
+        await (window as any).ethereum.request({
+          method: 'wallet_switchEthereumChain',
+          params: [{ chainId: '0x13882' }], // 80002 in hex
+        });
+      } catch (switchError: any) {
+        if (switchError.code === 4902) {
+          try {
+            await (window as any).ethereum.request({
+              method: 'wallet_addEthereumChain',
+              params: [
+                {
+                  chainId: '0x13882',
+                  chainName: 'Polygon Amoy Testnet',
+                  nativeCurrency: { name: 'MATIC', symbol: 'MATIC', decimals: 18 },
+                  rpcUrls: ['https://rpc-amoy.polygon.technology'],
+                  blockExplorerUrls: ['https://amoy.polygonscan.com'],
+                },
+              ],
+            });
+          } catch (addError) {
+            console.error('Failed to add network:', addError);
+          }
+        }
+      }
+    }
+  };
+
   const checkConnection = useCallback(async () => {
     if (typeof window !== 'undefined' && (window as any).ethereum) {
       try {
@@ -59,6 +89,9 @@ export function WalletProvider({ children }: { children: React.ReactNode }) {
       const network = await eth.request({ method: 'eth_chainId' });
       setChainId(parseInt(network, 16).toString());
       setProvider(new ethers.BrowserProvider(eth));
+      if (parseInt(network, 16) !== 80002) {
+        await switchNetwork();
+      }
     } catch (err) {
       console.error("Manual connection failed:", err);
     } finally {

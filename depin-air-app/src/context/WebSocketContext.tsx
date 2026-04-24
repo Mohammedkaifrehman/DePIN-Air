@@ -121,6 +121,7 @@ export function WebSocketProvider({ children }: { children: React.ReactNode }) {
   });
   const [mints, setMints] = useState<TxItem[]>([]);
 
+  const [history, setHistory] = useState<Map<number, SensorReading[]>>(new Map());
   const readingHistoryRef = useRef<Map<number, SensorReading[]>>(new Map());
   const wsRef = useRef<WebSocket | null>(null);
   const reconnectAttempt = useRef(0);
@@ -243,13 +244,15 @@ export function WebSocketProvider({ children }: { children: React.ReactNode }) {
             setLatestBatch(data);
 
             // Update reading history
-            const history = readingHistoryRef.current;
+            const nextHistory = new Map(readingHistoryRef.current);
             data.readings.forEach((r) => {
-              if (!history.has(r.sensorId)) history.set(r.sensorId, []);
-              const arr = history.get(r.sensorId)!;
+              const arr = [...(nextHistory.get(r.sensorId) || [])];
               arr.push(r);
               if (arr.length > MAX_HISTORY_PER_SENSOR) arr.shift();
+              nextHistory.set(r.sensorId, arr);
             });
+            readingHistoryRef.current = nextHistory;
+            setHistory(nextHistory);
 
             // Process anomalies
             if (data.anomalies && data.anomalies.length > 0) {
@@ -364,7 +367,7 @@ export function WebSocketProvider({ children }: { children: React.ReactNode }) {
         stats,
         connected,
         triggerSpike,
-        readingHistory: readingHistoryRef.current,
+        readingHistory: history,
         burnAirq,
         mints,
       }}

@@ -32,8 +32,20 @@ if (PRIVATE_KEY && LEDGER_ADDRESS) {
 }
 
 // ─── Load Sensor Data ───
-const sensorsPath = path.join(__dirname, '..', 'public', 'data', 'sensors.json');
-const sensors = JSON.parse(fs.readFileSync(sensorsPath, 'utf-8'));
+let sensors = [];
+try {
+  const sensorsPath = path.join(__dirname, '..', 'public', 'data', 'sensors.json');
+  if (fs.existsSync(sensorsPath)) {
+    sensors = JSON.parse(fs.readFileSync(sensorsPath, 'utf-8'));
+    console.log(`\x1b[32m📊 Loaded ${sensors.length} sensors from data file.\x1b[0m`);
+  } else {
+    throw new Error('sensors.json not found');
+  }
+} catch (e) {
+  console.error('\x1b[31mCRITICAL: Failed to load sensors.json:\x1b[0m', e.message);
+  console.log('\x1b[33m⚠️ Using fallback sensor data for Mumbai.\x1b[0m');
+  sensors = [{ id: 0, city: 'Mumbai', lat: 19.0760, lng: 72.8777 }];
+}
 
 // ─── City Base AQI ───
 const CITY_BASE_AQI = {
